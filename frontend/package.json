@@ -6,7 +6,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "start:clear": "ulimit -n 4096 2>/dev/null || true && expo start --clear"
   },
   "dependencies": {
     "expo": "~50.0.0",
