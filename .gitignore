@@ -1,0 +1,31 @@
+# Node
+node_modules/
+npm-debug.log
+package-lock.json
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Large folders / Trash
+.trash*/
+.git_backup/
+images*/
+frontend/node_modules/
+backend/venv/
