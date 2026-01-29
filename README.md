@@ -1,170 +1,170 @@
-# HireCircle - Production-Ready Job Matching Application
+# 🚀 HireCircle - Production-Ready Job Matching Application
 
-## 🚀 Quick Start
+A complete, production-ready job matching platform with AI-powered profile extraction, intelligent job matching, and real-time chat communication.
 
-### Backend Setup
+## ⚡ Quick Start
 
+### Prerequisites
+- Node.js 18+ and npm
+- Python 3.8+
+- MongoDB (running locally or remote)
+- Expo Go app on your phone (for testing)
+
+### 1. Backend Setup (First Time)
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
-
-# Create .env file (copy from .env.example)
-cp .env.example .env
-# Edit .env with your MongoDB URL and secrets
-
-# Start server
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Frontend Setup
-
+### 2. Frontend Setup (First Time)
 ```bash
 cd frontend
 npm install
-npx expo start -c
 ```
 
-## 📋 System Architecture
+### 3. Start Backend
+```bash
+cd backend
+./start.sh
+```
+Wait for: `✅ Connected to MongoDB at mongodb://localhost:27017`
 
-### Root Causes Identified & Fixed
+### 4. Start Frontend
+```bash
+cd frontend
+./start.sh
+```
 
-1. **Navigation Flow**: Fixed RoleSelect → Login → OTP flow
-2. **Auth State Management**: Added token persistence and auto-loading
-3. **Missing Core Features**: Implemented interview flow, matching algorithm, chat system
+### 5. Scan QR Code
+- Open **Expo Go** app on your phone
+- Scan the QR code from terminal or browser
+- App will load!
 
-### File-Level Changes
+## 📱 Features
 
-**REMOVED:**
-- No problematic configs found (NativeWind was not present)
+- ✅ **OTP Authentication** with rate limiting
+- ✅ **Smart Interview** - AI-powered profile extraction
+- ✅ **Job Matching Algorithm** - Hard gates + composite scoring
+- ✅ **Real-time Chat** - WebSocket-based messaging
+- ✅ **Application Tracking** - Track job applications
+- ✅ **Profile Management** - Multiple profiles support
+- ✅ **Match Percentage** - See how well you match jobs
 
-**MODIFIED:**
-- `frontend/App.js` - Added tab navigation and complete screen flow
-- `frontend/src/context/AuthContext.js` - Added token persistence
-- `frontend/src/screens/*` - All screens updated with proper styling
-- `backend/app/main.py` - Added all route handlers
-- `backend/app/routes/*` - Complete API implementation
+## 🏗️ Architecture
 
-**ADDED:**
-- `backend/app/middleware/rate_limiter.py` - Rate limiting for OTP and API
-- `backend/app/services/ai_extraction.py` - AI profile extraction with Gemini fallback
-- `backend/app/services/matching_algorithm.py` - Complete matching algorithm
-- `backend/app/routes/profiles.py` - Profile management
-- `backend/app/routes/chats.py` - Chat endpoints
-- `backend/app/routes/applications.py` - Application tracking
-- `backend/app/websocket/server.py` - WebSocket server for real-time chat
-- `frontend/src/screens/*` - All missing screens (Interview, ProfileReview, JobDetail, Chat, etc.)
+### Backend (FastAPI + MongoDB)
+- FastAPI REST API
+- MongoDB for data storage
+- WebSocket for real-time chat
+- AI extraction with Gemini API fallback
+- Rate limiting middleware
+- JWT authentication
 
-### Why System Is Now Stable
+### Frontend (React Native + Expo)
+- React Navigation (Stack + Tabs)
+- Expo Go compatible
+- Secure token storage
+- Real-time updates
+- Modern UI/UX
 
-1. **Single Config Source**: Clean babel.config.js, no conflicting PostCSS/Tailwind
-2. **Pure Inline Styles**: All React Native StyleSheet-based styling
-3. **Real Auth + Real-time Backend**: JWT auth with rate limiting, WebSocket support
-4. **Failsafe Matching Flow**: Complete algorithm with hard gates, composite scoring, threshold filtering
-5. **Production-Grade Error Handling**: Try-catch blocks, fallbacks, graceful degradation
+## 📁 Project Structure
 
-## 🔄 Complete User Flow
+```
+Hire/
+├── backend/
+│   ├── app/
+│   │   ├── core/          # Config, security
+│   │   ├── db/            # MongoDB connection
+│   │   ├── middleware/     # Rate limiting
+│   │   ├── models/         # Pydantic models
+│   │   ├── routes/         # API endpoints
+│   │   ├── services/       # Business logic
+│   │   └── websocket/      # WebSocket server
+│   ├── start.sh            # Backend startup script
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── context/        # Auth context
+│   │   ├── screens/        # All app screens
+│   │   └── services/       # API client
+│   ├── start.sh            # Frontend startup script
+│   └── package.json
+└── README.md
+```
 
-1. **Launch App** → Role Selection Screen
-2. **Select Role** → Login Screen
-3. **Enter Email/Phone** → OTP Verification
-4. **Verify OTP** → Dashboard (5 tabs)
-5. **Create Profile** → Smart Interview (4 questions)
-6. **Process Interview** → AI Extraction → Profile Review
-7. **Save Profile** → Matching Algorithm Triggers
-8. **Jobs Tab** → View Matched Jobs (1-20 results)
-9. **Tap Job** → Job Detail → Apply
-10. **Application** → Auto-Chat Created → Real-time Messaging
-11. **Applications Tab** → Track Status
-12. **Settings** → Logout, Account Management
+## 🔧 Troubleshooting
 
-## 🛠️ Backend Endpoints
+### "Too many open files" Error
+```bash
+brew install watchman
+```
+See `FIX_FILE_WATCHER.md` for details.
 
-### Auth
-- `POST /api/v1/auth/send-otp` - Send OTP (rate limited: 3/5min)
-- `POST /api/v1/auth/verify-otp` - Verify OTP and get token
+### Backend Connection Issues
+- Ensure MongoDB is running
+- Check API URL in `frontend/src/services/api.js`
+- Verify both devices on same Wi-Fi network
 
-### Profiles
-- `POST /api/v1/profiles/process-interview` - Process interview transcript
-- `POST /api/v1/profiles/create` - Save profile and trigger matching
-- `GET /api/v1/profiles` - Get user profiles
+### Expo Go Errors
+- Clear cache: `npx expo start --clear`
+- Check backend is running
+- See `TROUBLESHOOTING.md` for more
 
-### Jobs
-- `GET /api/v1/jobs` - Get matched jobs for active profile
-- `GET /api/v1/jobs/{job_id}` - Get job details
-- `POST /api/v1/jobs/{job_id}/apply` - Apply to job (creates application + chat)
+## 📚 Documentation
 
-### Applications
-- `GET /api/v1/applications` - Get user applications
+- `QUICK_START.md` - 2-minute setup guide
+- `SETUP.md` - Detailed setup instructions
+- `TROUBLESHOOTING.md` - Common issues and fixes
+- `FIX_FILE_WATCHER.md` - File watcher issues
+- `IMPLEMENTATION_SUMMARY.md` - Technical details
 
-### Chats
-- `GET /api/v1/chats/{chat_id}` - Get chat messages
-- `POST /api/v1/chats/{chat_id}/messages` - Send message
-- `GET /api/v1/chats` - Get all user chats
+## 🔐 Environment Variables
 
-### WebSocket
-- `WS /ws/{room_id}` - Real-time chat connection
+Create `backend/.env`:
+```env
+MONGO_URL=mongodb://localhost:27017
+DB_NAME=hire_app_db
+SECRET_KEY=your_secret_key_here
+GEMINI_API_KEY=your_gemini_key_optional
+```
+
+## 🚀 Production Deployment
+
+1. Set environment variables
+2. Use production MongoDB
+3. Configure CORS properly
+4. Set up Redis for caching
+5. Use proper secrets management
+6. Enable HTTPS
+
+## 📝 API Endpoints
+
+- `POST /api/v1/auth/send-otp` - Send OTP
+- `POST /api/v1/auth/verify-otp` - Verify OTP
+- `POST /api/v1/profiles/process-interview` - Process interview
+- `POST /api/v1/profiles/create` - Create profile
+- `GET /api/v1/jobs` - Get matched jobs
+- `POST /api/v1/jobs/{id}/apply` - Apply to job
+- `GET /api/v1/chats/{id}` - Get chat messages
+- `WS /ws/{room_id}` - WebSocket connection
 
 ## 🎯 Matching Algorithm
 
-1. **Hard Gates**:
-   - License/Registration requirements
-   - Commute distance (100km limit, remote bypass)
-   - Shift compatibility
-
-2. **Composite Scoring**:
-   - Salary: 15%
-   - Skills: 35%
-   - Experience: 30%
-   - Location: 10%
-   - Education: 10%
-
+1. **Hard Gates**: License, distance (100km), shift compatibility
+2. **Composite Scoring**: Salary (15%), Skills (35%), Experience (30%), Location (10%), Education (10%)
 3. **Threshold**: 0.62 (62% match required)
-
 4. **Results**: Top 20 matches, sorted by score
 
-## 🔒 Security Features
+## 📄 License
 
-- JWT token authentication
-- Rate limiting (OTP: 3/5min, API: 100/min)
-- Token expiry (120 minutes)
-- Secure token storage (expo-secure-store)
-- CORS configured
-- Input validation
+Private project - All rights reserved
 
-## 📱 Frontend Features
+## 👥 Contributors
 
-- Tab-based navigation (5 tabs)
-- Real-time chat interface
-- Job matching with percentage scores
-- Profile management
-- Application tracking
-- Settings & account management
-
-## 🚨 Production Considerations
-
-1. **Environment Variables**: Set GEMINI_API_KEY in .env for AI extraction
-2. **MongoDB**: Use production MongoDB URL in .env
-3. **Redis**: Add Redis for caching (currently in-memory)
-4. **WebSocket**: Configure for production scaling
-5. **Rate Limiting**: Consider Redis-based rate limiting for multi-instance
-6. **Error Logging**: Add proper logging service
-7. **Monitoring**: Add health checks and metrics
-
-## ✅ Expected Real User Experience
-
-1. Launch app → See role selection
-2. Login with OTP → Dashboard appears
-3. Complete Smart Interview (4 questions)
-4. See "Processing Interview" → "Profile Saved" → "Matching Jobs"
-5. Jobs tab populates with 1-20 matches
-6. Tap job → View details with match percentage
-7. Apply → Auto-chat opens with employer message
-8. Real-time messaging works
-9. Applications tab shows all applications
-10. Settings allows logout and account management
+Built with ❤️ for efficient job matching
 
 ---
 
-**Status**: Production-ready, fully integrated, end-to-end flow complete.
+**Status**: ✅ Production-ready | **Version**: 1.0.0
