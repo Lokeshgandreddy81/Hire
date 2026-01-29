@@ -1,4 +1,4 @@
-import React, { createContext, useState } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import api, { setAuthToken } from '../services/api';
 
@@ -7,20 +7,42 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [userToken, setUserToken] = useState(null);
     const [userInfo, setUserInfo] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        loadToken();
+    }, []);
+
+    const loadToken = async () => {
+        try {
+            const token = await SecureStore.getItemAsync('userToken');
+            if (token) {
+                setUserToken(token);
+                setAuthToken(token);
+            }
+        } catch (e) {
+            console.error('Failed to load token:', e);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const login = async (identifier) => {
         try {
+            setIsLoading(true);
             await api.post('/auth/send-otp', { identifier });
             return true;
         } catch (e) {
             console.error(e);
             return false;
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const verifyOtp = async (identifier, otp, role) => {
         try {
+            setIsLoading(true);
             const response = await api.post('/auth/verify-otp', { identifier, otp, role });
             const { access_token, user_id } = response.data;
             setUserToken(access_token);
@@ -31,12 +53,15 @@ export const AuthProvider = ({ children }) => {
         } catch (e) {
             console.error(e);
             return false;
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const logout = async () => {
         setUserToken(null);
         setUserInfo(null);
+        setAuthToken(null);
         await SecureStore.deleteItemAsync('userToken');
     };
 

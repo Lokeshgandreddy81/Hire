@@ -4,11 +4,13 @@ from app.models.user import OTPRequest, OTPVerify, Token
 from app.services.otp_service import generate_otp, verify_otp
 from app.core.security import create_access_token
 from app.db.mongo import get_db
+from app.middleware.rate_limiter import check_otp_rate_limit
 
 router = APIRouter()
 
 @router.post("/send-otp")
 async def send_otp_route(request: OTPRequest):
+    check_otp_rate_limit(request.identifier)
     generate_otp(request.identifier)
     return {"message": "OTP sent successfully", "identifier": request.identifier}
 

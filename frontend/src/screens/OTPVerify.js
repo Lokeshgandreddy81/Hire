@@ -3,12 +3,16 @@ import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 
 export default function OTPScreen({ route, navigation }) {
-    const { identifier } = route.params;
+    const { identifier, role = 'candidate' } = route.params;
     const [otp, setOtp] = useState('');
     const { verifyOtp } = useContext(AuthContext);
 
     const handleVerify = async () => {
-        const success = await verifyOtp(identifier, otp, 'candidate');
+        if (!otp.trim()) {
+            Alert.alert("Error", "Please enter the OTP");
+            return;
+        }
+        const success = await verifyOtp(identifier, otp, role);
         if (!success) {
             Alert.alert("Error", "Invalid OTP (Check backend logs for code)");
         }

@@ -2,14 +2,19 @@ import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 
-export default function LoginScreen({ navigation }) {
-    const [identifier, setIdentifier] = useState('test@example.com');
+export default function LoginScreen({ navigation, route }) {
+    const role = route?.params?.role || 'candidate';
+    const [identifier, setIdentifier] = useState('');
     const { login } = useContext(AuthContext);
 
     const handleLogin = async () => {
+        if (!identifier.trim()) {
+            Alert.alert("Error", "Please enter your email or phone number");
+            return;
+        }
         const success = await login(identifier);
         if (success) {
-            navigation.navigate('OTPVerify', { identifier });
+            navigation.navigate('OTPVerify', { identifier, role });
         } else {
             Alert.alert("Error", "Could not send OTP");
         }
