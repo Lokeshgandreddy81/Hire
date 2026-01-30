@@ -1,3 +1,4 @@
+import logging
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.core.config import settings
 
@@ -13,18 +14,16 @@ class MongoDB:
                 serverSelectionTimeoutMS=5000
             )
             self.db = self.client[settings.DB_NAME]
-            
-            # ACTUALLY VERIFY CONNECTION
             await self.client.admin.command('ping')
-            print(f"✅ Connected to MongoDB at {settings.MONGO_URL}")
+            logging.info('{"event":"db_connected","db":"mongo"}')
         except Exception as e:
-            print(f"❌ MongoDB connection failed: {e}")
+            logging.error('{"event":"db_connection_failed","error":"%s"}', str(e)[:100])
             raise RuntimeError(f"Failed to connect to MongoDB: {e}")
 
     def close(self):
         if self.client:
             self.client.close()
-            print("MongoDB connection closed")
+            logging.info('{"event":"db_closed"}')
 
 mongo_db = MongoDB()
 

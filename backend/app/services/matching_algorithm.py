@@ -1,4 +1,6 @@
 from typing import Dict, List
+from bson import ObjectId
+from bson.errors import InvalidId
 from app.db.mongo import get_db
 import math
 
@@ -121,8 +123,12 @@ async def match_jobs_for_profile(profile_id: str, user_id: str) -> List[Dict]:
     """
     db = get_db()
     
-    # Get profile
-    profile = await db["profiles"].find_one({"_id": profile_id})
+    # Get profile (profile_id is string from API; MongoDB _id is ObjectId)
+    try:
+        profile_oid = ObjectId(profile_id)
+    except InvalidId:
+        return []
+    profile = await db["profiles"].find_one({"_id": profile_oid})
     if not profile:
         return []
     

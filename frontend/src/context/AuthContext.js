@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import api, { setAuthToken } from '../services/api';
+import api, { setAuthToken, setOnUnauthorized } from '../services/api';
 
 export const AuthContext = createContext();
 
@@ -11,6 +11,18 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         loadToken();
+    }, []);
+
+    useEffect(() => {
+        setOnUnauthorized(async () => {
+            setUserToken(null);
+            setUserInfo(null);
+            setAuthToken(null);
+            try {
+                await SecureStore.deleteItemAsync('userToken');
+            } catch (_) {}
+        });
+        return () => setOnUnauthorized(() => {});
     }, []);
 
     const loadToken = async () => {

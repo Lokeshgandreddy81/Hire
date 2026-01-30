@@ -26,21 +26,19 @@ export default function ChatScreen({ navigation, route }) {
     };
 
     const sendMessage = async () => {
-        if (!inputText.trim()) return;
+        const text = inputText.trim();
+        if (!text) return;
 
         const newMessage = {
             sender: 'user',
-            text: inputText,
+            text,
             timestamp: new Date().toISOString()
         };
-
         setMessages([...messages, newMessage]);
         setInputText('');
 
         try {
-            await api.post(`/chats/${chatId}/messages`, {
-                text: inputText
-            });
+            await api.post(`/chats/${chatId}/messages`, { text });
         } catch (e) {
             console.error('Failed to send message:', e);
         }

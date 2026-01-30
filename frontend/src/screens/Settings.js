@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
+import api from '../services/api';
 
 export default function SettingsScreen({ navigation }) {
     const { logout, userInfo } = useContext(AuthContext);
@@ -20,6 +21,32 @@ export default function SettingsScreen({ navigation }) {
                             index: 0,
                             routes: [{ name: 'RoleSelect' }]
                         });
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleDeleteAccount = () => {
+        Alert.alert(
+            'Delete account',
+            'This will permanently delete your account and all your data. This cannot be undone.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await api.delete('/auth/account');
+                            await logout();
+                            navigation.reset({
+                                index: 0,
+                                routes: [{ name: 'RoleSelect' }]
+                            });
+                        } catch (e) {
+                            Alert.alert('Error', 'Failed to delete account. Please try again.');
+                        }
                     }
                 }
             ]
@@ -73,6 +100,10 @@ export default function SettingsScreen({ navigation }) {
                 <Text style={styles.aboutText}>HireCircle v1.0.0</Text>
                 <Text style={styles.aboutText}>Connecting talent with opportunities</Text>
             </View>
+
+            <TouchableOpacity style={styles.deleteAccountButton} onPress={handleDeleteAccount}>
+                <Text style={styles.deleteAccountButtonText}>Delete account</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                 <Text style={styles.logoutButtonText}>Logout</Text>
@@ -130,6 +161,20 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#666',
         marginBottom: 8
+    },
+    deleteAccountButton: {
+        marginHorizontal: 20,
+        marginTop: 20,
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E91E63'
+    },
+    deleteAccountButtonText: {
+        color: '#E91E63',
+        fontSize: 16,
+        fontWeight: '600',
+        textAlign: 'center'
     },
     logoutButton: {
         backgroundColor: '#E91E63',

@@ -4,8 +4,8 @@ import { Platform } from 'react-native';
 // For Android physical device: Use your computer's local IP (192.168.1.114)
 // For Android emulator: Use 10.0.2.2
 // For iOS: Use localhost for simulator, or local IP for physical device
-const BASE_URL = Platform.OS === 'android' 
-    ? 'http://192.168.1.114:8000/api/v1'  // Change to 10.0.2.2 if using Android emulator
+const BASE_URL = Platform.OS === 'android'
+    ? 'http://192.168.1.114:8000/api/v1'
     : 'http://localhost:8000/api/v1';
 
 const api = axios.create({
@@ -13,16 +13,24 @@ const api = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
-    timeout: 10000, // 10 second timeout
+    timeout: 10000,
 });
 
-// Add request interceptor for error handling
+// Launch requirement: 401/403 → forced re-login (token expiry handled)
+let onUnauthorized = () => {};
+export function setOnUnauthorized(fn) {
+    onUnauthorized = fn;
+}
+
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        console.error('API Error:', error.message);
-        if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
-            console.error('Backend server is not running. Please start it with: cd backend && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000');
+        const status = error.response?.status;
+        if (status === 401 || status === 403) {
+            onUnauthorized();
+        }
+        if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
+            console.error('Backend server is not running.');
         }
         return Promise.reject(error);
     }

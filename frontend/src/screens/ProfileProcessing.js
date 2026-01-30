@@ -1,40 +1,54 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
 import api from '../services/api';
 
 export default function ProfileProcessingScreen({ navigation, route }) {
     const { transcript } = route.params;
     const [status, setStatus] = useState('Analyzing your interview...');
-
-    useEffect(() => {
-        processInterview();
-    }, []);
+    const [error, setError] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     const processInterview = async () => {
+        setError(false);
+        setLoading(true);
+        setStatus('Extracting profile data...');
         try {
-            setStatus('Extracting profile data...');
             const response = await api.post('/profiles/process-interview', {
                 transcript
             });
-
             setStatus('Profile extracted successfully!');
-            
             setTimeout(() => {
                 navigation.replace('ProfileReview', {
                     profile: response.data.profile
                 });
             }, 1500);
         } catch (e) {
-            console.error(e);
+            setLoading(false);
+            setError(true);
             setStatus('Something went wrong. Please try again.');
         }
     };
 
+    useEffect(() => {
+        processInterview();
+    }, []);
+
     return (
         <View style={styles.container}>
-            <ActivityIndicator size="large" color="#7B2CBF" />
+            {loading && <ActivityIndicator size="large" color="#7B2CBF" />}
             <Text style={styles.statusText}>{status}</Text>
-            <Text style={styles.subtitle}>This may take a few moments</Text>
+            {!error ? (
+                <Text style={styles.subtitle}>This may take a few moments</Text>
+            ) : (
+                <>
+                    <TouchableOpacity style={styles.retryButton} onPress={processInterview}>
+                        <Text style={styles.retryButtonText}>Retry</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.exitButton} onPress={() => navigation.goBack()}>
+                        <Text style={styles.exitButtonText}>Exit</Text>
+                    </TouchableOpacity>
+                </>
+            )}
         </View>
     );
 }
@@ -59,5 +73,25 @@ const styles = StyleSheet.create({
         fontSize: 14,
         marginTop: 10,
         textAlign: 'center'
+    },
+    retryButton: {
+        backgroundColor: '#7B2CBF',
+        paddingHorizontal: 32,
+        paddingVertical: 14,
+        borderRadius: 8,
+        marginTop: 24
+    },
+    retryButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold'
+    },
+    exitButton: {
+        paddingVertical: 12,
+        marginTop: 12
+    },
+    exitButtonText: {
+        color: '#999',
+        fontSize: 16
     }
 });

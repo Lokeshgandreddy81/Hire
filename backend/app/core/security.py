@@ -52,3 +52,14 @@ async def get_current_user(
         }
     except JWTError:
         raise credentials_exception
+
+
+def decode_token(token: str) -> Optional[Dict]:
+    """Decode JWT and return payload or None. Used for WebSocket auth."""
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("id") is None or payload.get("sub") is None:
+            return None
+        return payload
+    except JWTError:
+        return None

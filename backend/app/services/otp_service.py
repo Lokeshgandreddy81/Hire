@@ -1,10 +1,18 @@
 import random
 from datetime import datetime, timedelta
 import asyncio
+import logging
 
 # In-memory OTP storage for demo/simplicity (Can be Redis in prod)
 otp_storage = {}
 cleanup_task = None
+
+def start_cleanup_task():
+    """Start the background cleanup task"""
+    global cleanup_task
+    if cleanup_task is None:
+        cleanup_task = asyncio.create_task(cleanup_expired_otps())
+        logging.info('{"event":"otp_cleanup_task_started"}')
 
 async def cleanup_expired_otps():
     """Run every 5 minutes to clean up expired OTPs"""
@@ -15,14 +23,7 @@ async def cleanup_expired_otps():
         for key in expired:
             del otp_storage[key]
         if expired:
-            print(f"🧹 Cleaned up {len(expired)} expired OTPs")
-
-def start_cleanup_task():
-    """Start the background cleanup task"""
-    global cleanup_task
-    if cleanup_task is None:
-        cleanup_task = asyncio.create_task(cleanup_expired_otps())
-        print("✅ OTP cleanup task started")
+            logging.info('{"event":"otp_cleanup","count":%d}', len(expired))
 
 def generate_otp(identifier: str) -> str:
     otp = f"{random.randint(100000, 999999)}"
@@ -30,8 +31,7 @@ def generate_otp(identifier: str) -> str:
         "otp": otp,
         "expires_at": datetime.utcnow() + timedelta(minutes=5)
     }
-    # Simulate sending OTP (In prod, integrate Twilio/SendGrid here)
-    print(f"\n📧 OTP for {identifier}: {otp}\n")
+    # No PII in logs. In dev, OTP is in memory only; use delivery channel (SMS/email) in prod.
     return otp
 
 def verify_otp(identifier: str, otp: str) -> bool:

@@ -1,13 +1,30 @@
+import uuid
+import logging
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 from app.core.config import settings
 from app.db.mongo import mongo_db, get_db
 from app.routes import auth, jobs, profiles, chats, applications
 from app.websocket.server import websocket_endpoint
 from app.services.otp_service import start_cleanup_task
 
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+
+class RequestIdMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+        request.state.request_id = request_id
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+
 app = FastAPI(title=settings.PROJECT_NAME)
 
+app.add_middleware(RequestIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
