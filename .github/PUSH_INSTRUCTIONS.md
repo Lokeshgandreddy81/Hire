@@ -3,6 +3,11 @@
 ## Current Status
 All changes are committed locally and ready to push.
 
+**One command (run from project root):**
+```bash
+cd /Users/chshesheer/Desktop/Hireapp/Hire && git push origin main
+```
+
 ## To Push to GitHub
 
 ### Option 1: Using HTTPS (with credentials)
@@ -40,10 +45,8 @@ git push origin main
 ```
 
 ## Commits Ready to Push
-- ✅ Fix setup issues (virtual env, startup scripts)
-- ✅ Fix EMFILE error (file watcher limits)
-- ✅ Update documentation
-- ✅ Add troubleshooting guides
+- ✅ Production stability fixes (MongoDB, OTP cleanup, rate limiter, ObjectId validation, ErrorBoundary, AuthContext)
+- ✅ Application flow docs and E2E auth script (APPLICATION_FLOW_DOCUMENTATION.md, E2E_APP_FLOW.md, scripts/e2e-auth-flow.sh)
 
 ## Verify Push
 After pushing, check:
