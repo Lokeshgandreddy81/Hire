@@ -6,6 +6,7 @@ from app.services.matching_algorithm import match_jobs_for_profile
 from pydantic import BaseModel
 from datetime import datetime
 from bson import ObjectId
+from bson.errors import InvalidId
 
 router = APIRouter()
 
@@ -59,21 +60,27 @@ async def get_job_detail(job_id: str, current_user: dict = Depends(get_current_u
     
     try:
         job = await db["jobs"].find_one({"_id": ObjectId(job_id)})
-        if not job:
-            raise HTTPException(status_code=404, detail="Job not found")
-        
-        job["_id"] = str(job["_id"])
-        job["id"] = job["_id"]
-        return job
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid job ID format")
+    
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    job["_id"] = str(job["_id"])
+    job["id"] = job["_id"]
+    return job
 
 @router.post("/{job_id}/apply")
 async def apply_to_job(job_id: str, current_user: dict = Depends(get_current_user)):
     """Apply to a job - creates application and auto-chat"""
     db = get_db()
     user_id = current_user.get("id")
-    from bson import ObjectId
+    
+    # Validate job_id
+    try:
+        job_object_id = ObjectId(job_id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid job ID format")
     
     # Check if already applied
     existing = await db["applications"].find_one({
@@ -88,6 +95,11 @@ async def apply_to_job(job_id: str, current_user: dict = Depends(get_current_use
             "chat_id": existing.get("chat_id")
         }
     
+    # Get job details
+    job = await db["jobs"].find_one({"_id": job_object_id})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
     # Create application
     application = {
         "user_id": user_id,
@@ -101,7 +113,6 @@ async def apply_to_job(job_id: str, current_user: dict = Depends(get_current_use
     application_id = str(result.inserted_id)
     
     # Create auto-chat
-    job = await db["jobs"].find_one({"_id": ObjectId(job_id)})
     chat = {
         "application_id": application_id,
         "user_id": user_id,

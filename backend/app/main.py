@@ -1,9 +1,10 @@
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.db.mongo import mongo_db
+from app.db.mongo import mongo_db, get_db
 from app.routes import auth, jobs, profiles, chats, applications
 from app.websocket.server import websocket_endpoint
+from app.services.otp_service import start_cleanup_task
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -17,7 +18,8 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_db_client():
-    mongo_db.connect()
+    await mongo_db.connect()
+    start_cleanup_task()
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
@@ -36,3 +38,13 @@ async def websocket_route(websocket: WebSocket, room_id: str):
 @app.get("/")
 def read_root():
     return {"status": "ok", "message": "Hire App Backend Running"}
+
+@app.get("/health")
+async def health_check():
+    """Health check with database validation"""
+    try:
+        db = get_db()
+        await db.command('ping')
+        return {"status": "healthy", "database": "connected"}
+    except Exception as e:
+        return {"status": "unhealthy", "database": "disconnected", "error": str(e)}

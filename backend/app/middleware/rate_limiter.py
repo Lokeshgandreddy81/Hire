@@ -21,14 +21,23 @@ class RateLimiter:
         """
         now = datetime.utcnow()
         
+        # MEMORY LEAK FIX: Clean up old identifiers (>1 hour old)
+        cutoff_cleanup = now - timedelta(hours=1)
+        for ident in list(self.requests.keys()):
+            if self.requests[ident] and self.requests[ident][-1] < cutoff_cleanup:
+                del self.requests[ident]
+        
+        # Clean up old blocks
+        for ident in list(self.blocked.keys()):
+            if now >= self.blocked[ident]:
+                del self.blocked[ident]
+        
         # Check if currently blocked
         if identifier in self.blocked:
             block_until = self.blocked[identifier]
             if now < block_until:
                 remaining = (block_until - now).total_seconds()
                 return False, f"Too many requests. Blocked for {int(remaining)} more seconds."
-            else:
-                del self.blocked[identifier]
         
         # Clean old requests outside window
         cutoff = now - timedelta(seconds=window_seconds)

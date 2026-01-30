@@ -5,6 +5,7 @@ from app.core.security import get_current_user
 from pydantic import BaseModel
 from datetime import datetime
 from bson import ObjectId
+from bson.errors import InvalidId
 
 router = APIRouter()
 
@@ -17,8 +18,13 @@ async def get_chat(chat_id: str, current_user: dict = Depends(get_current_user))
     db = get_db()
     user_id = current_user.get("id")
     
+    try:
+        chat_object_id = ObjectId(chat_id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid chat ID format")
+    
     chat = await db["chats"].find_one({
-        "_id": ObjectId(chat_id),
+        "_id": chat_object_id,
         "user_id": user_id
     })
     
@@ -40,8 +46,13 @@ async def send_message(
     db = get_db()
     user_id = current_user.get("id")
     
+    try:
+        chat_object_id = ObjectId(chat_id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid chat ID format")
+    
     chat = await db["chats"].find_one({
-        "_id": ObjectId(chat_id),
+        "_id": chat_object_id,
         "user_id": user_id
     })
     
@@ -55,7 +66,7 @@ async def send_message(
     }
     
     await db["chats"].update_one(
-        {"_id": ObjectId(chat_id)},
+        {"_id": chat_object_id},
         {"$push": {"messages": new_message}}
     )
     

@@ -15,13 +15,21 @@ export const AuthProvider = ({ children }) => {
 
     const loadToken = async () => {
         try {
-            const token = await SecureStore.getItemAsync('userToken');
+            const token = await Promise.race([
+                SecureStore.getItemAsync('userToken'),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('timeout')), 3000)
+                )
+            ]);
+            
             if (token) {
                 setUserToken(token);
                 setAuthToken(token);
             }
         } catch (e) {
-            console.error('Failed to load token:', e);
+            if (e.message !== 'timeout') {
+                console.error('Failed to load token:', e);
+            }
         } finally {
             setIsLoading(false);
         }

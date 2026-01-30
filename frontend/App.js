@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { AuthProvider, AuthContext } from './src/context/AuthContext';
@@ -69,10 +70,12 @@ const AppStack = () => {
 
 export default function App() {
     return (
-        <AuthProvider>
-            <NavigationContainer>
-                <AppStack />
-            </NavigationContainer>
-        </AuthProvider>
+        <ErrorBoundary>
+            <AuthProvider>
+                <NavigationContainer>
+                    <AppStack />
+                </NavigationContainer>
+            </AuthProvider>
+        </ErrorBoundary>
     );
 }
