@@ -1,31 +1,55 @@
-# Node
-node_modules/
-npm-debug.log
-package-lock.json
-
-# Python
-.venv/
-venv/
+# ==============================================================================
+# PYTHON / FASTAPI
+# ==============================================================================
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.manifest
+*.spec
 
-# Expo
-.expo/
-dist/
-web-build/
+# Virtual Environments
+venv/
+.venv/
+env/
+.env/
 
-# Environment
+# ==============================================================================
+# ENVIRONMENT & SECURITY (CRITICAL)
+# ==============================================================================
 .env
 .env.local
+.env.*
+.secrets
+*.key
+*.pem
 
-# IDE
+# ==============================================================================
+# DATABASE & LOGS
+# ==============================================================================
+*.sqlite3
+*.db
+logs/
+*.log
+
+# ==============================================================================
+# TESTING & COVERAGE
+# ==============================================================================
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# ==============================================================================
+# IDE / EDITOR
+# ==============================================================================
 .vscode/
 .idea/
 .DS_Store
+*.swp
+*.swo
 
-# Large folders / Trash
-.trash*/
-.git_backup/
-images*/
-frontend/node_modules/
-backend/venv/
+# ==============================================================================
+# MISC
+# ==============================================================================
+# Ignore local start scripts if they contain personal paths
+# start.sh (Optional: Keep this commented out if start.sh is generic)

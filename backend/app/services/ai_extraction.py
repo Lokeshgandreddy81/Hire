@@ -1,150 +1,176 @@
 import os
 import json
-from typing import Dict, Optional
-from app.core.config import settings
+import re
+import logging
+from typing import Dict, List, Any, Optional
+
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+logger = logging.getLogger("AIExtractionService")
+
+# Feature Flags
+# Only enable Gemini if the package is installed AND the key is present
+ENABLE_GEMINI = False
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 try:
     import google.generativeai as genai
-    GEMINI_AVAILABLE = True
+    if GEMINI_API_KEY:
+        genai.configure(api_key=GEMINI_API_KEY)
+        ENABLE_GEMINI = True
+        logger.info("✅ Gemini AI Configured")
+    else:
+        logger.info("ℹ️ Gemini AI Key missing (Using Rule-Based Fallback)")
 except ImportError:
-    GEMINI_AVAILABLE = False
+    logger.warning("⚠️ google-generativeai not installed. AI features disabled.")
 
-# Try local libraries first
-try:
-    import speech_recognition as sr
-    SPEECH_REC_AVAILABLE = True
-except ImportError:
-    SPEECH_REC_AVAILABLE = False
+# =============================================================================
+# EXTRACTION ENGINE
+# =============================================================================
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-
-if GEMINI_AVAILABLE and GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-
-def extract_profile_from_interview(transcript: str) -> Dict:
+def extract_profile_from_interview(transcript: str) -> Dict[str, Any]:
     """
-    Extract structured profile data from interview transcript.
-    Uses Gemini API as primary, with fallback to rule-based extraction.
+    Extracts structured profile data from unstructured text.
+    Reliability: Tries AI first, then Regex, then Defaults. Never crashes.
     """
-    if GEMINI_AVAILABLE and GEMINI_API_KEY:
+    if not transcript or len(transcript) < 10:
+        return _get_default_profile()
+
+    # 1. Try AI Extraction
+    if ENABLE_GEMINI:
         try:
             return _extract_with_gemini(transcript)
         except Exception as e:
-            print(f"Gemini extraction failed: {e}, falling back to rule-based")
-            return _extract_rule_based(transcript)
-    else:
-        return _extract_rule_based(transcript)
+            logger.error(f"Gemini Extraction Failed: {e}")
+            # Fall through to rule-based
 
-def _extract_with_gemini(transcript: str) -> Dict:
-    """Extract using Gemini API"""
+    # 2. Rule-Based Fallback (The "Safety Net")
+    logger.info("Using Rule-Based Extraction")
+    return _extract_rule_based(transcript)
+
+# =============================================================================
+# STRATEGIES
+# =============================================================================
+
+def _extract_with_gemini(transcript: str) -> Dict[str, Any]:
+    """AI-Powered Extraction using Google Gemini Pro."""
     model = genai.GenerativeModel('gemini-pro')
     
     prompt = f"""
-    Analyze this job interview transcript and extract structured information.
-    Return ONLY valid JSON matching this schema:
+    You are a Hiring Assistant. Analyze this interview transcript and extract a JSON profile.
+    
+    Transcript: "{transcript}"
+    
+    Output JSON strictly matching this schema:
     {{
-        "job_title": "string",
-        "summary": "string (2-3 sentences)",
-        "skills": ["skill1", "skill2", ...],
-        "experience_years": number,
-        "location": "string",
-        "salary_expectations": "string or number",
-        "licenses_certifications": ["cert1", ...],
-        "remote_work_preference": boolean
+        "roleTitle": "Current or Desired Job Title",
+        "skills": ["List", "of", "hard", "skills"],
+        "experienceYears": number (float),
+        "summary": "Professional summary (max 200 chars)",
+        "location": "City or Country inferred"
     }}
-    
-    Transcript:
-    {transcript}
-    
-    JSON:
     """
     
-    response = model.generate_content(prompt)
-    text = response.text.strip()
+    try:
+        # Generate
+        response = model.generate_content(prompt)
+        raw_text = response.text.strip()
+        
+        # Cleanup Markdown Code Blocks (Common LLM artifact)
+        if raw_text.startswith("```"):
+            raw_text = re.sub(r"^```(json)?|```$", "", raw_text, flags=re.MULTILINE).strip()
+            
+        data = json.loads(raw_text)
+        
+        # Validation
+        return {
+            "roleTitle": str(data.get("roleTitle", "Professional")),
+            "skills": list(data.get("skills", [])),
+            "experienceYears": float(data.get("experienceYears", 0)),
+            "summary": str(data.get("summary", "Extracted from interview.")),
+            "location": str(data.get("location", "Remote"))
+        }
+        
+    except json.JSONDecodeError:
+        logger.error("Gemini returned invalid JSON")
+        raise ValueError("Invalid JSON from AI")
+
+def _extract_rule_based(transcript: str) -> Dict[str, Any]:
+    """
+    Deterministic extraction using Regex keywords.
+    Focused on 'Blue Collar' & 'Tech' roles common in your examples.
+    """
+    text = transcript.lower()
     
-    # Clean JSON if wrapped in markdown
-    if text.startswith("```json"):
-        text = text[7:]
-    if text.startswith("```"):
-        text = text[3:]
-    if text.endswith("```"):
-        text = text[:-3]
-    text = text.strip()
+    # 1. Role Detection
+    role_map = {
+        "driver": ["driving", "truck", "vehicle", "license", "hmv", "lmv", "delivery"],
+        "developer": ["software", "code", "python", "java", "react", "programming"],
+        "mechanic": ["repair", "engine", "maintenance", "technician"],
+        "sales": ["selling", "customer", "retail", "marketing"],
+        "nurse": ["patient", "medical", "hospital", "care"]
+    }
     
-    data = json.loads(text)
+    detected_role = "Candidate"
+    max_matches = 0
     
-    # Validate and set defaults
+    for role, keywords in role_map.items():
+        matches = sum(1 for k in keywords if k in text)
+        if matches > max_matches:
+            max_matches = matches
+            detected_role = role.title()
+
+    # 2. Experience Detection
+    # Look for "X years", "X yrs"
+    exp_match = re.search(r'(\d+)\+?\s*(?:years?|yrs?)', text)
+    experience = float(exp_match.group(1)) if exp_match else 0.0
+    
+    # 3. Skills Extraction
+    common_skills = [
+        "driving", "maintenance", "repair", "safety", "logistics", # Blue collar
+        "python", "javascript", "react", "sql", "aws", "docker",   # Tech
+        "sales", "communication", "management", "excel"            # General
+    ]
+    
+    found_skills = [s.title() for s in common_skills if s in text]
+    
+    # 4. Summary Generation
+    summary = f"{detected_role} with {experience} years experience."
+    if found_skills:
+        summary += f" Skilled in {', '.join(found_skills[:3])}."
+
     return {
-        "job_title": data.get("job_title", "Professional"),
-        "summary": data.get("summary", "Experienced professional seeking opportunities."),
-        "skills": data.get("skills", []),
-        "experience_years": data.get("experience_years", 0),
-        "location": data.get("location", "Not specified"),
-        "salary_expectations": data.get("salary_expectations", "Negotiable"),
-        "licenses_certifications": data.get("licenses_certifications", []),
-        "remote_work_preference": data.get("remote_work_preference", False)
+        "roleTitle": detected_role,
+        "skills": found_skills or ["General"],
+        "experienceYears": experience,
+        "summary": summary,
+        "location": "Unknown" # Hard to regex reliable locations without a massive list
     }
 
-def _extract_rule_based(transcript: str) -> Dict:
-    """Fallback rule-based extraction"""
-    transcript_lower = transcript.lower()
-    
-    # Extract skills (common tech keywords)
-    skills_keywords = [
-        "python", "javascript", "react", "node", "java", "sql", "aws", 
-        "docker", "kubernetes", "git", "agile", "scrum", "api", "rest",
-        "typescript", "angular", "vue", "mongodb", "postgresql", "redis"
-    ]
-    found_skills = [skill for skill in skills_keywords if skill in transcript_lower]
-    
-    # Extract experience (look for numbers + "year")
-    import re
-    exp_match = re.search(r'(\d+)\s*(?:year|yr|years)', transcript_lower)
-    experience_years = int(exp_match.group(1)) if exp_match else 0
-    
-    # Extract location
-    location_keywords = ["remote", "new york", "san francisco", "london", "toronto"]
-    location = "Remote" if "remote" in transcript_lower else "Not specified"
-    for loc in location_keywords:
-        if loc in transcript_lower:
-            location = loc.title()
-            break
-    
-    # Extract job title (look for common titles)
-    title_keywords = [
-        "software engineer", "developer", "manager", "designer", 
-        "analyst", "consultant", "director", "lead"
-    ]
-    job_title = "Professional"
-    for title in title_keywords:
-        if title in transcript_lower:
-            job_title = title.title()
-            break
-    
+def _get_default_profile() -> Dict[str, Any]:
+    """Fail-safe return value."""
     return {
-        "job_title": job_title,
-        "summary": transcript[:200] + "..." if len(transcript) > 200 else transcript,
-        "skills": found_skills[:10] if found_skills else ["Communication", "Problem Solving"],
-        "experience_years": experience_years,
-        "location": location,
-        "salary_expectations": "Negotiable",
-        "licenses_certifications": [],
-        "remote_work_preference": "remote" in transcript_lower
+        "roleTitle": "New Candidate",
+        "skills": [],
+        "experienceYears": 0.0,
+        "summary": "Profile created automatically.",
+        "location": "Remote"
     }
 
-def transcribe_audio(audio_file_path: str) -> str:
+# =============================================================================
+# AUDIO TRANSCRIPTION (Simulated for MVP)
+# =============================================================================
+
+async def transcribe_audio(file_path: str) -> str:
     """
-    Transcribe audio to text.
-    Uses local speech_recognition first, falls back to Gemini if available.
+    Placeholder for Whisper/Google Speech-to-Text.
+    In a real app, this calls an external API.
     """
-    if SPEECH_REC_AVAILABLE:
-        try:
-            r = sr.Recognizer()
-            with sr.AudioFile(audio_file_path) as source:
-                audio = r.record(source)
-            return r.recognize_google(audio)
-        except Exception as e:
-            print(f"Local transcription failed: {e}")
+    logger.info(f"Simulating transcription for: {file_path}")
     
-    # Fallback: return placeholder (in production, use Gemini audio API)
-    return "I am an experienced professional looking for new opportunities. I have strong technical skills and excellent communication abilities."
+    # In production, integrate 'openai-whisper' or Google Cloud Speech here.
+    return (
+        "I am an experienced professional looking for new opportunities. "
+        "I have strong technical skills and excellent communication abilities."
+    )

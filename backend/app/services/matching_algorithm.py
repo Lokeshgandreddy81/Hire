@@ -1,167 +1,228 @@
-from typing import Dict, List
-from bson import ObjectId
-from bson.errors import InvalidId
-from app.db.mongo import get_db
 import math
+import hashlib
+import re
+import logging
+from typing import Dict, Any, List, Set, Tuple
+from bson import ObjectId
 
-async def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Calculate distance between two coordinates in km (Haversine formula)"""
-    R = 6371  # Earth radius in km
-    dlat = math.radians(lat2 - lat1)
-    dlon = math.radians(lon2 - lon1)
-    a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
-    c = 2 * math.asin(math.sqrt(a))
-    return R * c
+try:
+    from app.db.mongo import get_db
+except ImportError:
+    get_db = None
 
-async def apply_hard_gates(profile: Dict, job: Dict) -> tuple:
-    """
-    Apply hard gates to filter jobs.
-    Returns (passed, reason_if_failed)
-    """
-    # Gate 1: License/Registration Requirement
-    if job.get("license_required", False):
-        user_licenses = profile.get("licenses_certifications", [])
-        if not user_licenses:
-            return False, "License required but not provided"
-    
-    # Gate 2: Commute/Proximity (100km limit)
-    if not job.get("remote", False):
-        profile_location = profile.get("location", {})
-        job_location = job.get("location", {})
+# =============================================================================
+# APEX SYNTHESIS ALGORITHM — STABLE PRODUCTION VERSION
+# =============================================================================
+
+class ApexSynthesisMatcher:
+    __slots__ = ("skill_normalizer", "exp_levels", "MIN_SALARY", "MAX_SALARY", "weights", "regex")
+
+    def __init__(self):
+        self.skill_normalizer = {
+            "js": "javascript",
+            "py": "python",
+            "reactjs": "react",
+            "nodejs": "node",
+            "ml": "machine learning",
+            "ai": "artificial intelligence",
+        }
+
+        self.exp_levels = {
+            "junior": 2,
+            "mid": 4,
+            "senior": 7,
+            "lead": 9,
+        }
+
+        self.MIN_SALARY = 10_000
+        self.MAX_SALARY = 5_000_000
+
+        self.weights = {
+            "skills": 0.40,
+            "experience": 0.30,
+            "salary": 0.20,
+            "location": 0.10,
+        }
+
+        self.regex = {
+            "clean": re.compile(r"[^\w\s]"),
+            "years": re.compile(r"(\d+)\s*years?"),
+        }
+
+    # -------------------------------------------------------------------------
+    # NORMALIZATION
+    # -------------------------------------------------------------------------
+
+    def _skills(self, data: Dict[str, Any]) -> Set[str]:
+        raw = set()
+        for k in ("skills", "requirements"):
+            v = data.get(k)
+            if isinstance(v, list):
+                raw |= {str(x).lower() for x in v}
+        return {self.skill_normalizer.get(s, s) for s in raw if s}
+
+    def _experience(self, data: Dict[str, Any]) -> float:
+        val = data.get("experience_required") or data.get("experience_years") or 0
+        try:
+            return float(val)
+        except:
+            return 0.0
+
+    def _salary(self, data: Dict[str, Any]) -> float:
+        for k in ("maxSalary", "salary"):
+            v = data.get(k)
+            if isinstance(v, (int, float)) and v > 0:
+                return float(v)
+        return 0.0
+
+    # -------------------------------------------------------------------------
+    # SCORING
+    # -------------------------------------------------------------------------
+
+    def _title_score(self, profile: Dict[str, Any], job: Dict[str, Any]) -> float:
+        """
+        Heuristic Title Matching
+        Returns multiplier: 1.0 (neutral), >1.0 (boost), <1.0 (penalty)
+        """
+        p_title = str(profile.get("title") or "").lower()
+        j_title = str(job.get("title") or "").lower()
         
-        if isinstance(profile_location, dict) and isinstance(job_location, dict):
-            profile_lat = profile_location.get("lat")
-            profile_lon = profile_location.get("lon")
-            job_lat = job_location.get("lat")
-            job_lon = job_location.get("lon")
+        if not p_title or not j_title:
+            return 1.0
             
-            if all([profile_lat, profile_lon, job_lat, job_lon]):
-                distance = await calculate_distance(profile_lat, profile_lon, job_lat, job_lon)
-                if distance > 100:
-                    return False, f"Distance {distance:.1f}km exceeds 100km limit"
-    
-    # Gate 3: Shift Compatibility
-    if job.get("shift_type") == "night":
-        if not profile.get("prefers_night_shift", False):
-            return False, "Night shift required but user doesn't prefer it"
-    
-    return True, "Passed"
-
-async def calculate_composite_score(profile: Dict, job: Dict) -> float:
-    """
-    Calculate composite match score.
-    Components:
-    - Salary: 15%
-    - Skills: 35%
-    - Experience: 30%
-    - Location: 10%
-    - Education: 10%
-    """
-    # Component 1: Salary (15%)
-    salary_score = 1.0
-    if job.get("salary_range"):
-        job_salary = job["salary_range"].get("max", 0) if isinstance(job["salary_range"], dict) else 0
-        user_expectation = profile.get("salary_expectations", 0)
-        if isinstance(user_expectation, str):
-            # Try to extract number
-            import re
-            nums = re.findall(r'\d+', user_expectation)
-            user_expectation = int(nums[0]) if nums else 0
+        # Tokenize (simple split)
+        p_tokens = set(self.regex["clean"].sub(" ", p_title).split())
+        j_tokens = set(self.regex["clean"].sub(" ", j_title).split())
         
-        if job_salary > 0 and user_expectation > 0:
-            salary_score = min(1.0, user_expectation / job_salary)
-    
-    # Component 2: Skills (35%)
-    profile_skills = set(profile.get("skills", []))
-    job_skills = set(job.get("required_skills", []))
-    
-    if len(job_skills) == 0:
-        skills_score = 0.5  # Neutral if no skills specified
-    else:
-        matching_skills = len(profile_skills.intersection(job_skills))
-        skills_score = matching_skills / len(job_skills)
-    
-    # Component 3: Experience (30%)
-    job_exp_required = job.get("experience_required", 0)
-    user_exp = profile.get("experience_years", 0)
-    
-    if job_exp_required == 0:
-        experience_score = 1.0
-    else:
-        experience_score = min(1.0, user_exp / job_exp_required)
-    
-    # Component 4: Location (10%)
-    location_score = 1.0
-    if job.get("remote", False) and profile.get("remote_work_preference", False):
-        location_score = 1.0
-    elif not job.get("remote", False):
-        # Proximity bonus (simplified)
-        location_score = 0.8
-    
-    # Component 5: Education (10%) - simplified
-    education_score = 0.8  # Default neutral
-    
-    # Composite formula
-    composite_score = (
-        salary_score * 0.15 +
-        skills_score * 0.35 +
-        experience_score * 0.30 +
-        location_score * 0.10 +
-        education_score * 0.10
-    )
-    
-    return composite_score
+        # Ignored words
+        stop_words = {"senior", "junior", "lead", "manager", "intern", "associate", "executive", "iii", "ii", "i"}
+        p_core = p_tokens - stop_words
+        j_core = j_tokens - stop_words
+        
+        if not p_core or not j_core:
+             # Fallback to full tokens if core is empty (e.g. "Manager")
+             p_core = p_tokens
+             j_core = j_tokens
+
+        overlap = len(p_core & j_core)
+        
+        if overlap > 0:
+            return 1.2  # Boost for exact word match (e.g. "Software")
+        else:
+            return 0.5  # Heavy penalty for NO word match
+            
+    def calculate(self, profile: Dict[str, Any], job: Dict[str, Any]) -> float:
+        try:
+            ps = self._skills(profile)
+            js = self._skills(job)
+
+            # ✅ SKILL SCORING (STRICTER)
+            if not js:
+                # Job has no skills listed -> Low confidence match
+                skill_score = 0.1 # Was 0.7
+            else:
+                overlap = len(ps & js)
+                if len(js) > 0:
+                    # Raw ratio
+                    ratio = overlap / len(js)
+                    # No floor. If 0 overlap, score is 0.
+                    skill_score = ratio
+                    
+                    # 🔒 CRITICAL: FILTER BY SKILL
+                    # User Request: "If skills are not matched then I should [NOT] get that job"
+                    if skill_score == 0:
+                        return 0.0
+                else:
+                    skill_score = 0.0
+
+            # EXPERIENCE
+            pe = self._experience(profile)
+            je = self._experience(job)
+            exp_score = 1.0 if je == 0 else min(1.0, pe / je)
+
+            # SALARY
+            psal = self._salary(profile)
+            jsal = self._salary(job)
+            
+            # If job salary is 0 (hidden), assume match
+            if jsal == 0:
+                sal_score = 1.0
+            else:
+                # If profile has no salary expectation, assume match
+                if psal == 0:
+                    sal_score = 1.0
+                else:
+                    # Job pays 100k, I want 120k -> 100/120 = 0.83
+                    # Job pays 100k, I want 80k -> 1.0
+                    sal_score = 1.0 if psal <= jsal else (jsal / psal)
+
+            # WEIGHTED SUM
+            # Weights: Skills(0.4) + Exp(0.3) + Salary(0.2) + Location(0.1)
+            # We assume location is neutral (1.0) since we don't have geo-distance yet
+            loc_score = 1.0 
+            
+            base_score = (
+                (skill_score * self.weights["skills"]) +
+                (exp_score * self.weights["experience"]) +
+                (sal_score * self.weights["salary"]) +
+                (loc_score * self.weights["location"])
+            )
+            
+            # TITLE MULTIPLIER (The "Category" Filter)
+            title_mult = self._title_score(profile, job)
+            
+            final_score = base_score * title_mult
+            
+            return min(1.0, max(0.0, final_score))
+
+        except Exception as e:
+            logging.error(f"Match Calc Error: {e}")
+            return 0.0
+
+
+
+# =============================================================================
+# MATCH ADAPTER (API LAYER)
+# =============================================================================
 
 async def match_jobs_for_profile(profile_id: str, user_id: str) -> List[Dict]:
-    """
-    Main matching algorithm:
-    1. Query active jobs
-    2. Apply hard gates
-    3. Calculate composite scores
-    4. Filter by threshold (0.62)
-    5. Sort and limit to 20
-    """
-    db = get_db()
-    
-    # Get profile (profile_id is string from API; MongoDB _id is ObjectId)
-    try:
-        profile_oid = ObjectId(profile_id)
-    except InvalidId:
+    if not get_db:
         return []
-    profile = await db["profiles"].find_one({"_id": profile_oid})
+
+    db = get_db()
+
+    profile = await db["profiles"].find_one({"_id": ObjectId(profile_id)})
     if not profile:
         return []
-    
-    # Query active jobs
-    jobs = await db["jobs"].find({"status": "active"}).to_list(2000)
-    
+
+    jobs = await db["jobs"].find({"status": "active"}).to_list(1000)
+
+    matcher = ApexSynthesisMatcher()
     results = []
-    
+
     for job in jobs:
-        # Apply hard gates
-        passed, reason = await apply_hard_gates(profile, job)
-        if not passed:
-            continue
-        
-        # Calculate composite score
-        score = await calculate_composite_score(profile, job)
-        
-        # Apply threshold (0.62)
-        if score >= 0.62:
-            job["_id"] = str(job["_id"])
-            job["id"] = job["_id"]
-            job["match_score"] = score
-            job["match_percentage"] = int(score * 100)
-            results.append(job)
-    
-    # Sort by score descending
-    results.sort(key=lambda x: x["match_score"], reverse=True)
-    
-    # Limit to 20
-    results = results[:20]
-    
-    # Store in cache (simplified - in production use Redis)
-    cache_key = f"matches:{user_id}:{profile_id}"
-    # In production: await redis.setex(cache_key, 3600, json.dumps(results))
-    
-    return results
+        score = matcher.calculate(profile, job)
+
+        results.append({
+            "id": str(job["_id"]),
+            "title": job.get("title", "Role"),
+            "company": job.get("company", job.get("companyName", "Company")),
+            "match_score": score,
+            "match_percentage": int(score * 100),
+            "location": job.get("location", "Remote"),
+            "salary": job.get("maxSalary", job.get("salary", "Negotiable")),
+            "requirements": job.get("requirements", []),
+            "remote": job.get("remote", False),
+        })
+
+    # 🔒 HARDENING: MINIMUM THRESHOLD ENFORCEMENT
+    # Prevents "junk" matches from reaching the UI.
+    MIN_MATCH_THRESHOLD = 0.45  # 45% match minimum (Requires at least some skill/exp overlap)
+
+    filtered_results = [
+        r for r in results 
+        if r["match_score"] >= MIN_MATCH_THRESHOLD
+    ]
+
+    filtered_results.sort(key=lambda x: x["match_score"], reverse=True)
+    return filtered_results[:50]

@@ -1,162 +1,149 @@
-# FINAL GO-LIVE CHECKLIST — HIRE APP
+# 🚀 HIRE APP - FINAL GO-LIVE CHECKLIST
 
-**Lead rule:** Tick only when verified. No theory. No “almost”.
+**Status:** PRE-RELEASE AUDIT
+**Version:** 1.0.0 (MVP)
+
+**LEAD RULE:** Tick only when verified on a real device. No theory. No "almost".
 
 ---
 
-## 1. SYSTEM STABILITY (CRASH-PROOF)
+## 1. 🛡️ SYSTEM STABILITY (CRASH-PROOF)
 
 | # | Requirement | Verified |
-|---|-------------|----------|
-| 1.1 | App launches in Expo Go every time | ☐ |
-| 1.2 | No white screen | ☐ |
-| 1.3 | No silent crash (ErrorBoundary in place) | ☐ |
-| 1.4 | Every async flow has loading state | ☐ |
-| 1.5 | Every async flow has error state | ☐ |
-| 1.6 | Every async flow has retry or exit (e.g. ProfileProcessing: Retry + Exit) | ☐ |
+|---|-------------|:--------:|
+| 1.1 | App launches in Expo Go every time (Cold start & Hot reload) | [ ] |
+| 1.2 | No white screen of death (WSOD) on any navigation | [ ] |
+| 1.3 | **ErrorBoundary** catches crashes and allows retry/exit | [ ] |
+| 1.4 | Every async flow has a visible **Loading State** (Spinner/Skeleton) | [ ] |
+| 1.5 | Every async flow has a visible **Error State** (Alert/Toast) | [ ] |
+| 1.6 | Critical flows (Interview, Apply) have **Retry** mechanisms | [ ] |
 
-**Lead decision:** If any user can get stuck → BLOCK RELEASE.
+**DECISION:** If any user can get stuck in a "zombie state" → **BLOCK RELEASE**.
 
 ---
 
-## 2. FRONTEND–BACKEND CONTRACT (TRUST)
+## 2. 🤝 FRONTEND–BACKEND CONTRACT (TRUST)
 
 | # | Requirement | Verified |
-|---|-------------|----------|
-| 2.1 | Every API call has timeout (10s) | ☐ |
-| 2.2 | 401/403 handled (interceptor → clear token, re-login) | ☐ |
-| 2.3 | 5xx handled (error state + retry/exit where implemented) | ☐ |
-| 2.4 | Token expiry → forced re-login on 401 | ☐ |
-| 2.5 | No hardcoded IDs | ☐ |
-| 2.6 | No assumptions about data shape (defensive where critical) | ☐ |
+|---|-------------|:--------:|
+| 2.1 | API Timeout set to 10s (axios config) | [ ] |
+| 2.2 | **401/403 Handling:** Interceptor clears token & redirects to RoleSelect | [ ] |
+| 2.3 | **5xx Handling:** UI shows generic "Server Error" (not raw HTML/JSON) | [ ] |
+| 2.4 | Token Expiry: Forces re-login gracefully | [ ] |
+| 2.5 | No hardcoded MongoDB ObjectIDs in frontend code | [ ] |
+| 2.6 | Defensive coding: `item?.property` used everywhere (no `undefined` crashes) | [ ] |
 
-**Lead decision:** If frontend trusts backend blindly → BLOCK RELEASE.
+**DECISION:** If frontend trusts backend data blindly → **BLOCK RELEASE**.
 
 ---
 
-## 3. AUTHENTICATION & IDENTITY (SECURITY BASELINE)
+## 3. 🔐 AUTHENTICATION & IDENTITY
 
 | # | Requirement | Verified |
-|---|-------------|----------|
-| 3.1 | SECRET_KEY from env only in production (runtime check) | ☐ |
-| 3.2 | OTP flow rate limited | ☐ |
-| 3.3 | OTP logged safely — NO PII (no identifier/OTP in logs) | ☐ |
-| 3.4 | JWT validated everywhere (protected routes use get_current_user) | ☐ |
-| 3.5 | Expired tokens rejected (401) | ☐ |
-| 3.6 | WebSocket auth enforced on connect (?token=JWT + room access check) | ☐ |
+|---|-------------|:--------:|
+| 3.1 | `SECRET_KEY` loaded from `.env` (not hardcoded in `.py`) | [ ] |
+| 3.2 | OTP Generation Rate Limiting (or simple mock delay) | [ ] |
+| 3.3 | **NO PII IN LOGS:** OTP code & Phone Number masked in console logs | [ ] |
+| 3.4 | JWT Signature validated on *every* protected route | [ ] |
+| 3.5 | Expired tokens strictly rejected (401 Unauthorized) | [ ] |
 
-**Absolute rule:** If auth can be bypassed, the app does not exist.
+**ABSOLUTE RULE:** If auth can be bypassed → **APP DOES NOT EXIST**.
 
 ---
 
-## 4. MATCHING LOGIC (CORE BUSINESS)
+## 4. 🧩 MATCHING LOGIC (CORE BUSINESS)
 
 | # | Requirement | Verified |
-|---|-------------|----------|
-| 4.1 | Profile → Interview → Save → Match runs automatically | ☐ |
-| 4.2 | IDs type-correct (ObjectId vs string) in matching | ☐ |
-| 4.3 | Matching re-runnable (upsert job_matches) | ☐ |
-| 4.4 | Empty results handled gracefully (Jobs tab shows empty, no crash) | ☐ |
+|---|-------------|:--------:|
+| 4.1 | Flow: Profile → Interview → Save → Match runs automatically | [ ] |
+| 4.2 | ID Types: `ObjectId` vs `String` handled correctly in backend logic | [ ] |
+| 4.3 | Idempotency: Running match twice doesn't duplicate `job_matches` | [ ] |
+| 4.4 | Empty State: "Jobs" tab handles 0 matches gracefully (Empty Component) | [ ] |
 
-**Lead decision:** If Jobs tab can be empty due to a bug → BLOCK RELEASE.
+**DECISION:** If "Jobs" tab crashes on empty data → **BLOCK RELEASE**.
 
 ---
 
-## 5. REAL-TIME (CHAT)
+## 5. 💬 REAL-TIME (CHAT)
 
 | # | Requirement | Verified |
-|---|-------------|----------|
-| 5.1 | WebSocket auth (token in query, room isolation) | ☐ |
-| 5.2 | Room isolation (user can only access own chats) | ☐ |
-| 5.3 | REST chat used by frontend; WebSocket optional (if used, pass ?token=) | ☐ |
+|---|-------------|:--------:|
+| 5.1 | Chat List loads correct conversations for User ID | [ ] |
+| 5.2 | Sending message updates UI immediately (Optimistic Update) | [ ] |
+| 5.3 | REST Fallback: Chat works even if WebSocket is unstable | [ ] |
 
 ---
 
-## 6. DATABASE & DATA SAFETY
+## 6. 🗄️ DATABASE & CONFIG
 
 | # | Requirement | Verified |
-|---|-------------|----------|
-| 6.1 | Single source of configuration (app.core.config) | ☐ |
-| 6.2 | Deterministic DB paths (MONGO_URL, DB_NAME) | ☐ |
-| 6.3 | No split config (.env.example aligned with config.py) | ☐ |
-| 6.4 | No accidental prod/local crossover (ENVIRONMENT=production requires SECRET_KEY) | ☐ |
+|---|-------------|:--------:|
+| 6.1 | `MONGO_URL` loaded from env (not hardcoded `localhost`) | [ ] |
+| 6.2 | `DB_NAME` is consistent across all backend modules | [ ] |
+| 6.3 | `.env` is in `.gitignore` (Backend) | [ ] |
+| 6.4 | No accidental Prod/Dev crossover (Separate DBs recommended) | [ ] |
 
-**Lead rule:** If data location is ambiguous → BLOCK RELEASE.
+**LEAD RULE:** If data location is ambiguous → **BLOCK RELEASE**.
 
 ---
 
-## 7. OBSERVABILITY
+## 7. 👁️ OBSERVABILITY & LOGS
 
 | # | Requirement | Verified |
-|---|-------------|----------|
-| 7.1 | Structured logs (JSON-style events, no PII) | ☐ |
-| 7.2 | Request / correlation IDs (X-Request-ID middleware) | ☐ |
-| 7.3 | Lifecycle logs: interview_processed, profile_saved, matching_started, matching_completed | ☐ |
-| 7.4 | Error logs without PII | ☐ |
+|---|-------------|:--------:|
+| 7.1 | Structured Logs: JSON style or clear prefixes (`[AUTH]`, `[MATCH]`) | [ ] |
+| 7.2 | Lifecycle Logs: "Profile Saved", "Match Started", "Match Completed" | [ ] |
+| 7.3 | Error Logs: Catch exceptions and print stack trace (Server side) | [ ] |
 
-**Lead rule:** Blind systems die.
+**LEAD RULE:** Blind systems die.
 
 ---
 
-## 8. PEAK LOAD & FAILURE THINKING
+## 8. 📉 FAILURE HANDLING
 
 | # | Requirement | Verified |
-|---|-------------|----------|
-| 8.1 | Rate limits on OTP | ☐ |
-| 8.2 | Background matching: retry-safe (upsert), cancel-safe (task runs once) | ☐ |
-| 8.3 | External AI (Gemini): timeout / fallback to rule-based | ☐ |
-| 8.4 | UI degrades gracefully (error state + retry/exit) | ☐ |
+|---|-------------|:--------:|
+| 8.1 | AI Service (Gemini) Timeout/Fallback handled (Heuristic mode active) | [ ] |
+| 8.2 | Network disconnect handling (NetInfo or simple error alert) | [ ] |
+| 8.3 | UI degrades gracefully if API is down (Retry button) | [ ] |
 
-**Lead mindset:** The system must bend, not break.
+**LEAD MINDSET:** The system must bend, not break.
 
 ---
 
-## 9. SETTINGS & ACCOUNT CONTROL
+## 9. ⚙️ SETTINGS & USER CONTROL
 
 | # | Requirement | Verified |
-|---|-------------|----------|
-| 9.1 | Logout everywhere (Settings) | ☐ |
-| 9.2 | Token “revocation” via client clear + 401 forces re-login | ☐ |
-| 9.3 | Account deletion (DELETE /auth/account) with confirmation in UI | ☐ |
-| 9.4 | Session invalidation (logout clears token; 401 clears token) | ☐ |
+|---|-------------|:--------:|
+| 9.1 | **Logout** works and clears SecureStore | [ ] |
+| 9.2 | **Delete Account** is visible, functional, and confirms with User | [ ] |
+| 9.3 | Account deletion removes User Data (Compliance) | [ ] |
 
-**Lead rule:** If users can’t control their account → no trust.
+**LEAD RULE:** If users can't leave → **NO TRUST**.
 
 ---
 
-## 10. END-TO-END FLOW (MUST PASS)
+## 10. ✅ END-TO-END FLOW (FINAL EXAM)
+
+**Must pass in one continuous session without restarting the app.**
 
 | # | Step | Verified |
-|---|------|----------|
-| 10.1 | Login (OTP flow) | ☐ |
-| 10.2 | Interview (SmartInterview → ProfileProcessing → ProfileReview) | ☐ |
-| 10.3 | Match (Jobs tab populates after profile save) | ☐ |
-| 10.4 | Apply (JobDetail → Apply Now → Chat created) | ☐ |
-| 10.5 | Chat (View Chat, send message via REST) | ☐ |
-| 10.6 | Logout / Delete account (optional path) | ☐ |
-
-**Lead rule:** One full re-audit passes with no critical blockers.
+|---|------|:--------:|
+| 10.1 | **Login:** Phone -> OTP -> Dashboard | [ ] |
+| 10.2 | **Interview:** Create -> Record(Mock) -> Analyze -> Review -> Save | [ ] |
+| 10.3 | **Match:** Jobs tab populates immediately after Profile Save | [ ] |
+| 10.4 | **Apply:** Job Detail -> Apply Now -> Success Alert -> Chat Created | [ ] |
+| 10.5 | **Chat:** Open Chat -> Send Message -> Message Appears | [ ] |
+| 10.6 | **Cleanup:** Settings -> Delete Account -> Redirect to Role Select | [ ] |
 
 ---
 
-## WHEN LEAD SAYS “YES, IT’S READY”
+## 🏁 FINAL DECISION
 
-- [ ] All security blockers closed  
-- [ ] Expo Go runs cleanly  
-- [ ] End-to-end flow works: Login → Interview → Match → Apply → Chat  
-- [ ] No hardcoded secrets or IDs in production path  
-- [ ] Logs prove behavior (lifecycle events, request IDs)  
-- [ ] This checklist completed with all critical items ticked  
+**Ready for Release?**
 
----
+- [ ] **YES:** All Critical items checked. Logs are clean. E2E passed.
+- [ ] **NO:** Blocking bugs exist. Do not deploy.
 
-## RELEASE MANAGER SIGN-OFF (OPTIONAL)
-
-| Role | Name | Date | Signature |
-|------|------|------|-----------|
-| Engineering Lead | | | |
-| Release Manager | | | |
-
----
-
-*This checklist reflects the FINAL LEAD CALL requirements. No features added; only security, frontend resilience, and observability closed.*
+**Signed Off By:** __________________________  
+**Date:** __________________________
