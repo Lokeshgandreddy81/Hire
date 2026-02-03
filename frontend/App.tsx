@@ -1,13 +1,26 @@
 import 'react-native-gesture-handler'; // MUST BE FIRST
 
 import React, { useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, LogBox } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+// Filter out benign console errors from React Native internals
+const originalError = console.error;
+console.error = (...args) => {
+    if (
+        typeof args[0] === 'string' &&
+        (args[0].includes('Text strings must be rendered within a <Text> component') ||
+            args[0].includes('SafeAreaView has been deprecated'))
+    ) {
+        return; // Suppress these specific errors
+    }
+    originalError(...args); // Log all other errors normally
+};
 
 // Auth
 import { AuthProvider, useAuth } from './src/context/AuthContext';
@@ -17,7 +30,6 @@ import LoginScreen from './src/views/LoginScreen';
 import JobsTab from './src/views/JobsTab';
 import ApplicationsTab from './src/views/ApplicationsTab';
 import ProfilesTab from './src/views/ProfilesTab';
-import ConnectTab from './src/views/ConnectTab';
 import SettingsTab from './src/views/SettingsTab';
 import JobDetailScreen from './src/screens/JobDetail';
 import ChatScreen from './src/screens/Chat';
@@ -28,8 +40,7 @@ import {
     IconBriefcase,
     IconMessageSquare,
     IconUsers,
-    IconSettings,
-    IconGlobe
+    IconSettings
 } from './src/components/Icons';
 
 // Types / APIs
@@ -56,24 +67,26 @@ function MainTabs({ onTriggerInterview }: { onTriggerInterview: () => void }) {
                 headerShown: false,
                 tabBarActiveTintColor: '#7c3aed',
                 tabBarInactiveTintColor: '#94a3b8',
-                tabBarStyle: { height: 60, paddingBottom: 6 }
+                tabBarStyle: {
+                    height: 60,
+                    paddingBottom: 6,
+                    backgroundColor: 'white',
+                    borderTopWidth: 1,
+                    borderTopColor: '#f1f5f9',
+                    elevation: 0, // Android flat
+                    shadowOpacity: 0 // iOS flat
+                },
+                tabBarLabelStyle: {
+                    fontSize: 11,
+                    fontWeight: '600'
+                }
             }}
         >
-            <Tab.Screen
-                name="Connect"
-                component={ConnectTab}
-                options={{
-                    tabBarIcon: ({ color }) => (
-                        <IconGlobe size={24} color={color} />
-                    )
-                }}
-            />
-
             <Tab.Screen
                 name="Profile"
                 options={{
                     tabBarLabel:
-                        userRole === UserRole.EMPLOYEE ? 'Profile' : 'Talent',
+                        userRole === UserRole.JOB_SEEKER ? 'Profile' : 'Talent',
                     tabBarIcon: ({ color }) => (
                         <IconUsers size={24} color={color} />
                     )
@@ -197,6 +210,7 @@ function RootNavigator() {
 // =============================================================================
 
 export default function App() {
+    console.log('🚀 [App.tsx] Root Component Mounting...');
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider>

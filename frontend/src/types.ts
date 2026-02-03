@@ -4,7 +4,7 @@
 
 export enum UserRole {
     // Aligned with Python Backend 'role' strings
-    EMPLOYEE = 'employee',
+    JOB_SEEKER = 'job_seeker',
     EMPLOYER = 'employer',
     ADMIN = 'admin'
 }

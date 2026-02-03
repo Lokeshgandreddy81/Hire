@@ -110,22 +110,26 @@ export default function JobCreationForm({ onClose, onSuccess }: JobCreationFormP
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled"
             >
+                {/* SECTION 1: THE BASICS (Reality Gates) */}
+                <Text style={styles.sectionHeader}>The Basics</Text>
+
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Job Title *</Text>
+                    <Text style={styles.label}>Job Title (Role) *</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="e.g. Senior Warehouse Manager"
+                        placeholder="e.g. Delivery Driver, Warehouse Associate"
                         value={title}
                         onChangeText={setTitle}
                         placeholderTextColor="#94a3b8"
                     />
+                    <Text style={styles.hint}>This matches the worker's target role.</Text>
                 </View>
 
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>Company Name *</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="e.g. Global Logistics Inc."
+                        placeholder="e.g. FastLogistics Pvt Ltd"
                         value={companyName}
                         onChangeText={setCompanyName}
                         placeholderTextColor="#94a3b8"
@@ -133,15 +137,19 @@ export default function JobCreationForm({ onClose, onSuccess }: JobCreationFormP
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Location *</Text>
+                    <Text style={styles.label}>Work Location (City/Area) *</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="e.g. Mumbai, India (or Remote)"
+                        placeholder="e.g. Indiranagar, Bangalore"
                         value={location}
                         onChangeText={setLocation}
                         placeholderTextColor="#94a3b8"
                     />
+                    <Text style={styles.hint}>Used for distance calculation (Gate #1).</Text>
                 </View>
+
+                {/* SECTION 2: REQUIREMENTS (The Filter) */}
+                <Text style={styles.sectionHeader}>Requirements</Text>
 
                 <View style={styles.row}>
                     <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
@@ -154,12 +162,13 @@ export default function JobCreationForm({ onClose, onSuccess }: JobCreationFormP
                             onChangeText={setMinSalary}
                             placeholderTextColor="#94a3b8"
                         />
+                        <Text style={styles.hint}>Economic Gate.</Text>
                     </View>
                     <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-                        <Text style={styles.label}>Max Salary (₹)</Text>
+                        <Text style={styles.label}>Max (Optional)</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="40000"
+                            placeholder="30000"
                             keyboardType="numeric"
                             value={maxSalary}
                             onChangeText={setMaxSalary}
@@ -169,7 +178,19 @@ export default function JobCreationForm({ onClose, onSuccess }: JobCreationFormP
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Experience Required (Years)</Text>
+                    <Text style={styles.label}>Required Skills (Comma Separated) *</Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="e.g. HMV License, Night Shift, English"
+                        value={skillsInput}
+                        onChangeText={setSkillsInput}
+                        placeholderTextColor="#94a3b8"
+                    />
+                    <Text style={styles.hint}>These are matching tags.</Text>
+                </View>
+
+                <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Min Experience (Years)</Text>
                     <TextInput
                         style={styles.input}
                         placeholder="0"
@@ -181,22 +202,10 @@ export default function JobCreationForm({ onClose, onSuccess }: JobCreationFormP
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Skills & Requirements</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="e.g. Forklift Driving, Inventory Management, Hindi"
-                        value={skillsInput}
-                        onChangeText={setSkillsInput}
-                        placeholderTextColor="#94a3b8"
-                    />
-                    <Text style={styles.hint}>Separate skills with commas</Text>
-                </View>
-
-                <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Description</Text>
+                    <Text style={styles.label}>Job Description (Human Context)</Text>
                     <TextInput
                         style={[styles.input, styles.textArea]}
-                        placeholder="Briefly describe the role..."
+                        placeholder="Describe the day-to-day. Keep it honest."
                         value={description}
                         onChangeText={setDescription}
                         placeholderTextColor="#94a3b8"
@@ -272,6 +281,13 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginBottom: 8,
         color: '#475569'
+    },
+    sectionHeader: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#0f172a',
+        marginBottom: 16,
+        marginTop: 8
     },
     input: {
         backgroundColor: '#f8fafc',

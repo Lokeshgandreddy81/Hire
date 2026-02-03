@@ -23,6 +23,7 @@ import {
     IconSparkles,
     IconClock
 } from '../components/Icons';
+import { AnimatedButton } from '../components/MotionHelpers';
 
 // =============================================================================
 // TYPES
@@ -63,7 +64,7 @@ export default function JobDetailScreen({ navigation, route }: JobDetailScreenPr
             const data = await JobAPI.getJobById(jobId);
             setJob(data);
 
-            if (userInfo?.role === UserRole.EMPLOYEE && data?.description) {
+            if (userInfo?.role === UserRole.JOB_SEEKER && data?.description) {
                 const mockProfile =
                     'Experienced driver with HMV license and 5 years experience.';
                 const reason = await generateMatchExplanation(
@@ -93,18 +94,13 @@ export default function JobDetailScreen({ navigation, route }: JobDetailScreenPr
         setApplying(true);
         try {
             await JobAPI.applyToJob(job.id);
-
-            Alert.alert(
-                'Application Sent',
-                'Your request has been sent. Chat will unlock once the employer accepts.'
-            );
-
-            // 🔒 Reload job from backend (authoritative)
+            // 🔒 Reload job from backend to confirm status
             await loadJob();
         } catch (e: any) {
+            // Only alert on FAILURE, but keep it gentle
             Alert.alert(
-                'Application Failed',
-                e?.message || 'You may have already applied.'
+                'Something went wrong',
+                'We couldn\'t send your application. Please try again.'
             );
         } finally {
             setApplying(false);
@@ -124,6 +120,7 @@ export default function JobDetailScreen({ navigation, route }: JobDetailScreenPr
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#7c3aed" />
+                <Text style={styles.loadingText}>Finding details...</Text>
             </View>
         );
     }
@@ -135,78 +132,69 @@ export default function JobDetailScreen({ navigation, route }: JobDetailScreenPr
             {/* HEADER */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-                    <IconArrowLeft size={24} color="#1e293b" />
+                    <IconArrowLeft size={24} color="#0f172a" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Job Details</Text>
                 <TouchableOpacity onPress={handleShare} style={styles.iconBtn}>
-                    <IconShare size={24} color="#1e293b" />
+                    <IconShare size={24} color="#0f172a" />
                 </TouchableOpacity>
             </View>
 
-            <ScrollView>
-                <View style={styles.section}>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                <View style={styles.heroSection}>
                     <Text style={styles.title}>{job.title}</Text>
                     <Text style={styles.company}>{job.company}</Text>
 
-                    <View style={styles.metaRow}>
-                        <IconMapPin size={16} color="#64748b" />
-                        <Text style={styles.metaText}>{job.location}</Text>
-                        <IconClock size={16} color="#64748b" />
-                        <Text style={styles.metaText}>{job.postedAt || 'Recently'}</Text>
+                    <View style={styles.metaTags}>
+                        <View style={styles.tag}>
+                            <IconMapPin size={14} color="#64748b" />
+                            <Text style={styles.tagText}>{job.location}</Text>
+                        </View>
+                        <View style={styles.tag}>
+                            <IconClock size={14} color="#64748b" />
+                            <Text style={styles.tagText}>{job.postedAt || 'Recently'}</Text>
+                        </View>
                     </View>
                 </View>
 
                 {!isEmployer && matchReason && (
-                    <View style={styles.aiCard}>
-                        <View style={styles.aiHeader}>
-                            <IconSparkles size={18} color="#7c3aed" />
-                            <Text style={styles.aiTitle}>AI Match</Text>
-                            <Text style={styles.matchText}>
-                                {job.match_percentage}%
-                            </Text>
+                    <View style={styles.insightCard}>
+                        <View style={styles.insightHeader}>
+                            <IconSparkles size={20} color="#7c3aed" />
+                            <Text style={styles.insightTitle}>Why you're a match</Text>
+                            <View style={styles.matchBadge}>
+                                <Text style={styles.matchText}>{job.match_percentage}% Match</Text>
+                            </View>
                         </View>
-                        <Text style={styles.aiText}>{matchReason}</Text>
+                        <Text style={styles.insightText}>{matchReason}</Text>
                     </View>
                 )}
 
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Description</Text>
+                    <Text style={styles.sectionTitle}>The Role</Text>
                     <Text style={styles.description}>{job.description}</Text>
                 </View>
+
+                {/* Spacer for FAB */}
+                <View style={{ height: 100 }} />
             </ScrollView>
 
-            {/* FOOTER */}
+            {/* FOOTER (Floating Action) */}
             <View style={styles.footer}>
                 {isEmployer ? (
                     <TouchableOpacity style={styles.editBtn}>
-                        <Text style={styles.applyBtnText}>Edit Job</Text>
+                        <Text style={styles.editBtnText}>Edit Job</Text>
                     </TouchableOpacity>
                 ) : (
-                    <TouchableOpacity
-                        style={[
-                            styles.applyBtn,
-                            (applying || job.application_status === 'requested') &&
-                            styles.applyBtnDisabled
-                        ]}
+                    <AnimatedButton
                         onPress={handleApply}
-                        disabled={applying || job.application_status === 'requested'}
-                    >
-                        {applying ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : job.application_status === 'requested' ? (
-                            <>
-                                <IconCheck size={18} color="#fff" />
-                                <Text style={styles.applyBtnText}>Requested</Text>
-                            </>
-                        ) : (
-                            <>
-                                <IconBriefcase size={18} color="#fff" />
-                                <Text style={styles.applyBtnText}>
-                                    Request to Join
-                                </Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
+                        label="Request to Join"
+                        loadingLabel="Requesting..."
+                        successLabel="Request Sent"
+                        isLoading={applying}
+                        isSuccess={job.application_status === 'requested'}
+                        style={styles.applyBtn}
+                        textStyle={styles.applyBtnText}
+                    />
                 )}
             </View>
         </View>
@@ -214,26 +202,113 @@ export default function JobDetailScreen({ navigation, route }: JobDetailScreenPr
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
-    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-    headerTitle: { fontSize: 16, fontWeight: 'bold', color: '#0f172a' },
-    iconBtn: { padding: 8, borderRadius: 20, backgroundColor: '#f8fafc' },
-    section: { padding: 20, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-    title: { fontSize: 24, fontWeight: 'bold', color: '#0f172a', marginBottom: 4 },
-    company: { fontSize: 16, color: '#64748b', marginBottom: 16 },
-    metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    metaText: { fontSize: 13, color: '#64748b', marginRight: 12 },
-    aiCard: { margin: 20, padding: 16, backgroundColor: '#f5f3ff', borderRadius: 16, borderWidth: 1, borderColor: '#ddd6fe' },
-    aiHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 8 },
-    aiTitle: { fontSize: 14, fontWeight: 'bold', color: '#7c3aed', flex: 1 },
-    matchText: { fontSize: 14, fontWeight: 'bold', color: '#166534', backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
-    aiText: { fontSize: 14, color: '#4c1d95', lineHeight: 22 },
-    sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#0f172a', marginBottom: 12 },
-    description: { fontSize: 15, lineHeight: 24, color: '#334155' },
-    footer: { padding: 16, paddingBottom: 32, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
-    applyBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#7c3aed', padding: 16, borderRadius: 16, gap: 8 },
-    applyBtnDisabled: { backgroundColor: '#94a3b8', opacity: 0.8 },
-    editBtn: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a', padding: 16, borderRadius: 16 },
-    applyBtnText: { color: 'white', fontSize: 16, fontWeight: 'bold' }
+    container: { flex: 1, backgroundColor: '#ffffff' },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+    loadingText: { color: '#64748b', fontSize: 14, fontWeight: '500' },
+
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingTop: 60, // Safe Area
+        paddingBottom: 10
+    },
+    iconBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#f8fafc',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+
+    scrollContent: {
+        paddingTop: 10
+    },
+
+    heroSection: {
+        padding: 24,
+        paddingBottom: 12
+    },
+    title: {
+        fontSize: 32,
+        fontWeight: '900',
+        color: '#020617', // Slate-950
+        marginBottom: 8,
+        letterSpacing: -1,
+        lineHeight: 38
+    },
+    company: {
+        fontSize: 18,
+        color: '#64748b',
+        marginBottom: 20,
+        fontWeight: '500'
+    },
+    metaTags: { flexDirection: 'row', gap: 12 },
+    tag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: '#f1f5f9',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8
+    },
+    tagText: { fontSize: 13, color: '#475569', fontWeight: '600' },
+
+    insightCard: {
+        marginHorizontal: 24,
+        marginVertical: 12,
+        padding: 20,
+        backgroundColor: '#fdf4ff', // Very light Fuchsia
+        borderRadius: 20,
+        // No border, just soft color
+    },
+    insightHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 },
+    insightTitle: { fontSize: 16, fontWeight: '800', color: '#7c3aed', flex: 1 },
+    matchBadge: { backgroundColor: 'white', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+    matchText: { fontSize: 12, fontWeight: '800', color: '#7c3aed' },
+    insightText: { fontSize: 15, color: '#4c1d95', lineHeight: 24 },
+
+    section: { padding: 24 },
+    sectionTitle: { fontSize: 18, fontWeight: '800', color: '#0f172a', marginBottom: 16 },
+    description: { fontSize: 16, lineHeight: 26, color: '#334155' },
+
+    footer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: 24,
+        paddingBottom: 40,
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderTopWidth: 1,
+        borderTopColor: '#f1f5f9'
+    },
+    applyBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#0f172a', // Slate-900 (Black) for confident action
+        paddingVertical: 20,
+        borderRadius: 16,
+        gap: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 5
+    },
+    applyBtnDisabled: { backgroundColor: '#cbd5e1', shadowOpacity: 0 },
+    applyBtnText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+
+    editBtn: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f1f5f9',
+        paddingVertical: 20,
+        borderRadius: 16
+    },
+    editBtnText: { color: '#0f172a', fontSize: 16, fontWeight: '600' }
 });

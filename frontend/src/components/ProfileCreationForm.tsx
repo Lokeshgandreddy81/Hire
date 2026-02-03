@@ -108,19 +108,23 @@ export default function ProfileCreationForm({ onClose, onSuccess, initialData }:
                     </View>
                 )}
 
+                {/* SECTION 1: CORE IDENTITY */}
+                <Text style={styles.sectionHeader}>Core Identity</Text>
+
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Role Name *</Text>
+                    <Text style={styles.label}>Target Role *</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="e.g. Delivery Driver, Sales Exec"
+                        placeholder="e.g. Delivery Partner, Electrician"
                         value={headline}
                         onChangeText={setHeadline}
                         placeholderTextColor="#94a3b8"
                     />
+                    <Text style={styles.hint}>This is what you want to be hired as.</Text>
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>City *</Text>
+                    <Text style={styles.label}>Current City *</Text>
                     <TextInput
                         style={styles.input}
                         placeholder="e.g. Bangalore"
@@ -128,11 +132,27 @@ export default function ProfileCreationForm({ onClose, onSuccess, initialData }:
                         onChangeText={setLocation}
                         placeholderTextColor="#94a3b8"
                     />
+                    <Text style={styles.hint}>Where you are located right now.</Text>
                 </View>
+
+                <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Skills (Comma Separated) *</Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="e.g. Two-wheeler, Inventory, Basic English"
+                        value={skillsInput}
+                        onChangeText={setSkillsInput}
+                        placeholderTextColor="#94a3b8"
+                    />
+                    <Text style={styles.hint}>These tags match you to jobs.</Text>
+                </View>
+
+                {/* SECTION 2: CONSTRAINTS */}
+                <Text style={styles.sectionHeader}>Constraints</Text>
 
                 <View style={styles.row}>
                     <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-                        <Text style={styles.label}>Experience (Yrs)</Text>
+                        <Text style={styles.label}>Experience (Years)</Text>
                         <TextInput
                             style={styles.input}
                             placeholder="0"
@@ -143,10 +163,10 @@ export default function ProfileCreationForm({ onClose, onSuccess, initialData }:
                         />
                     </View>
                     <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-                        <Text style={styles.label}>Rate (₹/hr)</Text>
+                        <Text style={styles.label}>Min Pay / Mo (₹)</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="150"
+                            placeholder="20000"
                             keyboardType="numeric"
                             value={hourlyRate}
                             onChangeText={setHourlyRate}
@@ -156,21 +176,10 @@ export default function ProfileCreationForm({ onClose, onSuccess, initialData }:
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Skills (comma separated) *</Text>
+                    <Text style={styles.label}>Availability</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="e.g. Driving, Navigation, Hindi"
-                        value={skillsInput}
-                        onChangeText={setSkillsInput}
-                        placeholderTextColor="#94a3b8"
-                    />
-                </View>
-
-                <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Preferred Shift</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="e.g. Night Shift, Flexible"
+                        placeholder="e.g. Immediately, Night Shift Only"
                         value={shift}
                         onChangeText={setShift}
                         placeholderTextColor="#94a3b8"
@@ -178,16 +187,17 @@ export default function ProfileCreationForm({ onClose, onSuccess, initialData }:
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Bio / Summary</Text>
+                    <Text style={styles.label}>Additional Context (Optional)</Text>
                     <TextInput
                         style={[styles.input, styles.textArea]}
                         multiline
-                        placeholder="Briefly describe your experience and availability..."
+                        placeholder="e.g. 'I own a bike with valid RC'..."
                         value={bio}
                         onChangeText={setBio}
                         textAlignVertical="top"
                         placeholderTextColor="#94a3b8"
                     />
+                    <Text style={styles.hint}>Details that help the algorithm understand you.</Text>
                 </View>
 
                 <View style={styles.spacer} />
@@ -275,6 +285,19 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginBottom: 8,
         color: '#475569'
+    },
+    sectionHeader: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#0f172a',
+        marginBottom: 16,
+        marginTop: 8
+    },
+    hint: {
+        fontSize: 12,
+        color: '#94a3b8',
+        marginTop: 6,
+        fontStyle: 'italic',
     },
     input: {
         backgroundColor: '#f8fafc',

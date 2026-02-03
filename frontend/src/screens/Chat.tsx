@@ -23,6 +23,7 @@ import {
     IconVideo,
     IconPhone
 } from '../components/Icons';
+import { AnimatedMessage, BreathingBlock } from '../components/MotionHelpers';
 
 // =============================================================================
 // TYPES — MUST MATCH BACKEND EXACTLY
@@ -120,6 +121,7 @@ export default function ChatScreen({ navigation, route }: ChatScreenProps) {
     // RENDER MESSAGE
     // =========================================================================
 
+    // Inside renderItem (restored):
     const renderItem = ({ item }: { item: ChatMessage }) => {
         // 🔒 SMART ALIGNMENT: 
         // If IDs match (Self-Chat Demo), use Role to distinguish.
@@ -131,7 +133,7 @@ export default function ChatScreen({ navigation, route }: ChatScreenProps) {
         }
 
         return (
-            <View style={[styles.msgRow, isMe ? styles.rowRight : styles.rowLeft]}>
+            <AnimatedMessage isMe={isMe} style={[styles.msgRow, isMe ? styles.rowRight : styles.rowLeft]}>
                 {!isMe && (
                     <Image
                         source={{ uri: `https://ui-avatars.com/api/?name=${name}` }}
@@ -142,37 +144,35 @@ export default function ChatScreen({ navigation, route }: ChatScreenProps) {
                     <Text style={[styles.text, isMe ? styles.textMe : styles.textThem]}>
                         {item.text}
                     </Text>
-                    <Text style={styles.time}>
-                        {new Date(item.timestamp).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        })}
-                    </Text>
+                    {item.timestamp && (
+                        <Text style={[styles.time, isMe ? styles.timeMe : styles.timeThem]}>
+                            {new Date(item.timestamp).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })}
+                        </Text>
+                    )}
                 </View>
-            </View>
+            </AnimatedMessage>
         );
     };
 
-    // =========================================================================
-    // RENDER
-    // =========================================================================
+    // ...
 
+    // Inside FlatList:
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
             <KeyboardAvoidingView
                 style={styles.container}
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
                 {/* HEADER */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
-                        <IconArrowLeft size={24} color="#1e293b" />
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                        <IconArrowLeft size={24} color="#0f172a" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>{name}</Text>
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                        <IconPhone size={20} color="#94a3b8" />
-                        <IconVideo size={20} color="#94a3b8" />
-                    </View>
+                    <View style={{ width: 24 }} /> {/* Spacer for balance */}
                 </View>
 
                 {/* MESSAGES */}
@@ -190,20 +190,34 @@ export default function ChatScreen({ navigation, route }: ChatScreenProps) {
                         onContentSizeChange={() =>
                             flatListRef.current?.scrollToEnd({ animated: true })
                         }
+                        ListEmptyComponent={
+                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 100 }}>
+                                <BreathingBlock>
+                                    <Text style={{ fontSize: 48, marginBottom: 16 }}>💬</Text>
+                                </BreathingBlock>
+                                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#0f172a', marginBottom: 8 }}>
+                                    Start the conversation
+                                </Text>
+                                <Text style={{ color: '#64748b' }}>
+                                    Say hello to {name}
+                                </Text>
+                            </View>
+                        }
                     />
                 )}
 
                 {/* INPUT */}
                 <View style={styles.inputBar}>
-                    <TouchableOpacity>
-                        <IconPlus size={22} color="#94a3b8" />
+                    <TouchableOpacity style={styles.attachBtn}>
+                        <IconPlus size={24} color="#64748b" />
                     </TouchableOpacity>
 
                     <TextInput
                         style={styles.input}
                         value={inputText}
                         onChangeText={setInputText}
-                        placeholder="Type a message…"
+                        placeholder="Message..."
+                        placeholderTextColor="#94a3b8"
                         multiline
                     />
 
@@ -215,7 +229,7 @@ export default function ChatScreen({ navigation, route }: ChatScreenProps) {
                         onPress={sendMessage}
                         disabled={!inputText.trim() || sending}
                     >
-                        <IconSend size={18} color="white" />
+                        <IconSend size={20} color="white" />
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
@@ -228,79 +242,94 @@ export default function ChatScreen({ navigation, route }: ChatScreenProps) {
 // =============================================================================
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f8fafc' },
+    container: { flex: 1, backgroundColor: '#ffffff' },
 
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
         justifyContent: 'space-between',
         borderBottomWidth: 1,
-        borderColor: '#f1f5f9'
+        borderColor: '#f1f5f9',
+        backgroundColor: 'white'
+    },
+    backBtn: {
+        padding: 8,
+        marginLeft: -8
     },
     headerTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
+        fontSize: 17,
+        fontWeight: '700',
         color: '#0f172a'
     },
 
     loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-    list: { padding: 16 },
+    list: { padding: 16, paddingBottom: 24 },
 
-    msgRow: { flexDirection: 'row', marginBottom: 12, maxWidth: '85%' },
+    msgRow: { flexDirection: 'row', marginBottom: 20, maxWidth: '80%' },
     rowLeft: { alignSelf: 'flex-start' },
-    rowRight: { alignSelf: 'flex-end' },
+    rowRight: { alignSelf: 'flex-end', justifyContent: 'flex-end' },
 
     avatar: {
         width: 32,
         height: 32,
-        borderRadius: 16,
-        marginRight: 8
+        borderRadius: 12,
+        marginRight: 12,
+        backgroundColor: '#f1f5f9'
     },
 
-    bubble: { padding: 12, borderRadius: 16 },
-    bubbleMe: { backgroundColor: '#7c3aed', borderBottomRightRadius: 2 },
+    bubble: { padding: 14, borderRadius: 20 },
+    bubbleMe: {
+        backgroundColor: '#7c3aed', // Violet-600
+        borderBottomRightRadius: 4
+    },
     bubbleThem: {
-        backgroundColor: 'white',
-        borderBottomLeftRadius: 2,
-        borderWidth: 1,
-        borderColor: '#e2e8f0'
+        backgroundColor: '#f1f5f9', // Slate-100 (No border, clean)
+        borderBottomLeftRadius: 4
     },
 
-    text: { fontSize: 15 },
+    text: { fontSize: 16, lineHeight: 24 },
     textMe: { color: 'white' },
     textThem: { color: '#0f172a' },
 
-    time: { fontSize: 10, marginTop: 4, color: '#94a3b8' },
+    time: { fontSize: 11, marginTop: 6 },
+    timeMe: { color: 'rgba(255,255,255,0.7)' },
+    timeThem: { color: '#94a3b8' },
 
     inputBar: {
         flexDirection: 'row',
-        alignItems: 'flex-end',
+        alignItems: 'center',
         padding: 12,
+        paddingBottom: 30, // iOS Home Indicator safe
         borderTopWidth: 1,
         borderColor: '#f1f5f9',
         backgroundColor: 'white'
     },
+    attachBtn: {
+        padding: 10,
+    },
     input: {
         flex: 1,
-        marginHorizontal: 8,
+        marginHorizontal: 12,
         backgroundColor: '#f8fafc',
-        borderRadius: 20,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderWidth: 1,
-        borderColor: '#e2e8f0'
+        borderRadius: 24,
+        paddingHorizontal: 18,
+        paddingVertical: 12,
+        fontSize: 16,
+        color: '#0f172a',
+        maxHeight: 100
     },
     sendBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         backgroundColor: '#7c3aed',
         alignItems: 'center',
         justifyContent: 'center'
     },
     sendDisabled: {
-        backgroundColor: '#cbd5e1'
+        backgroundColor: '#f1f5f9'
     }
 });

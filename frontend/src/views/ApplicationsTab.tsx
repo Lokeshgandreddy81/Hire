@@ -100,7 +100,7 @@ export default function ApplicationsTab({ navigation }: any) {
             contentContainerStyle={{ padding: 16 }}
             renderItem={({ item }) => {
                 const locked =
-                    userInfo?.role === UserRole.EMPLOYEE &&
+                    userInfo?.role === UserRole.JOB_SEEKER &&
                     !item.chatId;
 
                 return (

@@ -94,7 +94,6 @@ const CandidateDetailView = ({ candidate, onBack, onStatusUpdate, navigation }: 
         <View style={styles.actionFooter}>
             {candidate.status === 'accepted' ? (
                 <Pressable
-                    style={styles.actionButton}
                     style={[styles.actionButton, styles.shortlistBtn]}
                     onPress={() => navigation.navigate('Applications')}
                 >
@@ -173,7 +172,7 @@ const TalentPoolView = ({ pool, onBack, onSelectCandidate }: { pool: TalentPool,
 // =============================================================================
 
 const ProfilesTab: React.FC<ProfilesTabProps & { navigation: any }> = ({ currentUser, onTriggerInterview, navigation }) => {
-    const isEmployee = currentUser?.role === UserRole.EMPLOYEE;
+    const isEmployee = currentUser?.role === UserRole.JOB_SEEKER;
 
     // State
     const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -330,7 +329,6 @@ const ProfilesTab: React.FC<ProfilesTabProps & { navigation: any }> = ({ current
                                                 <View style={styles.profileHeader}>
                                                     <Image source={{ uri: currentUser?.avatar || 'https://ui-avatars.com/api/?name=User' }} style={styles.avatar} />
                                                     <View>
-                                                        <Text style={styles.welcomeText}>Welcome back,</Text>
                                                         <Text style={styles.profileName}>{currentUser?.name || "User"}</Text>
                                                         <Text style={styles.profileRole}>{profile.roleTitle}</Text>
                                                     </View>

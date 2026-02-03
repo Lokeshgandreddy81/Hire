@@ -163,7 +163,7 @@ const FeedPost = ({ post }: { post: Post }) => (
 // =============================================================================
 
 export default function ConnectTab({ currentUser }: ConnectTabProps) {
-    const isEmployee = currentUser?.role === UserRole.EMPLOYEE;
+    const isEmployee = currentUser?.role === UserRole.JOB_SEEKER;
 
     return (
         <View style={styles.container}>

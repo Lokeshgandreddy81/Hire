@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, 
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { ChatAPI } from '../services/api';
 import { User, UserRole } from '../types';
+import { AnimatedCard, BreathingBlock } from '../components/MotionHelpers';
 
 // =============================================================================
 // TYPES & INTERFACES
@@ -97,7 +98,7 @@ export default function ConnectTab({ currentUser }: ConnectTabProps) {
     // RENDER HELPERS
     // =========================================================================
 
-    const renderItem = ({ item }: { item: ChatPreview }) => {
+    const renderItem = ({ item, index }: { item: ChatPreview, index: number }) => {
         // Dynamic Role Logic
         const isEmployer = currentUser?.role === UserRole.EMPLOYER;
         const displayName = isEmployer ? "Candidate" : "Hiring Manager";
@@ -108,18 +109,18 @@ export default function ConnectTab({ currentUser }: ConnectTabProps) {
         const avatarEmoji = isEmployer ? '👨‍💻' : '💼';
 
         return (
-            <TouchableOpacity
+            <AnimatedCard
+                index={index}
                 style={styles.card}
                 onPress={() => handleOpenChat(item)}
-                activeOpacity={0.7}
             >
-                <View style={[styles.avatarContainer, { backgroundColor: avatarColor }]}>
+                <View style={[styles.avatarContainer, { backgroundColor: '#f1f5f9' }]}>
                     <Text style={styles.avatarText}>{avatarEmoji}</Text>
                 </View>
 
                 <View style={styles.infoContainer}>
                     <View style={styles.topRow}>
-                        <Text style={styles.name}>{displayName}</Text>
+                        <Text style={styles.name} numberOfLines={1}>{displayName}</Text>
                         <Text style={styles.time}>{formatTime(item.updated_at)}</Text>
                     </View>
 
@@ -129,34 +130,36 @@ export default function ConnectTab({ currentUser }: ConnectTabProps) {
 
                     <View style={styles.metaRow}>
                         <Text style={styles.jobRef}>Ref: {item.job_id.slice(-6).toUpperCase()}</Text>
-                        <Text style={styles.roleLabel}>{displayRole}</Text>
                     </View>
                 </View>
-            </TouchableOpacity>
+            </AnimatedCard>
         );
     };
 
     const renderEmpty = () => (
         <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>💬</Text>
-            <Text style={styles.emptyTitle}>No connections yet</Text>
+            <BreathingBlock>
+                <Text style={styles.emptyIcon}>💬</Text>
+            </BreathingBlock>
+            <Text style={styles.emptyTitle}>Quiet here</Text>
             <Text style={styles.emptyDesc}>
-                {currentUser?.role === UserRole.EMPLOYEE
-                    ? "Apply to jobs to start conversations with employers."
-                    : "Wait for candidates to apply to your posted jobs."}
+                {currentUser?.role === UserRole.JOB_SEEKER
+                    ? "Apply to jobs to start conversations."
+                    : "No inquiries yet. They'll appear here."}
             </Text>
         </View>
     );
 
     return (
         <View style={styles.container}>
-            <View style={styles.headerContainer}>
-                <Text style={styles.header}>Your Connections</Text>
+            <View style={styles.header}>
+                <Text style={styles.headerTitle}>Messages</Text>
+                <Text style={styles.headerSubtitle}>Your active conversations</Text>
             </View>
 
             {isLoading && !refreshing ? (
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#8B5CF6" />
+                    <ActivityIndicator size="large" color="#7c3aed" />
                 </View>
             ) : (
                 <FlatList
@@ -168,7 +171,7 @@ export default function ConnectTab({ currentUser }: ConnectTabProps) {
                         chats.length === 0 && styles.centerEmpty
                     ]}
                     refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#8B5CF6']} />
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7c3aed" />
                     }
                     ListEmptyComponent={renderEmpty}
                 />
@@ -183,46 +186,83 @@ export default function ConnectTab({ currentUser }: ConnectTabProps) {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#f8fafc' },
-    headerContainer: { backgroundColor: 'white', padding: 16, paddingTop: 60, paddingBottom: 16, borderBottomWidth: 1, borderColor: '#f1f5f9' },
-    header: { fontSize: 24, fontWeight: 'bold', color: '#1e293b' },
 
-    listContent: { padding: 16 },
+    // Header
+    header: {
+        paddingTop: 60,
+        paddingHorizontal: 24,
+        paddingBottom: 20,
+        backgroundColor: 'white',
+        borderBottomWidth: 1,
+        borderBottomColor: '#f1f5f9',
+    },
+    headerTitle: {
+        fontSize: 32,
+        fontWeight: '900',
+        color: '#0f172a',
+        letterSpacing: -1,
+    },
+    headerSubtitle: {
+        fontSize: 16,
+        color: '#64748b',
+        marginTop: 4,
+        fontWeight: '500',
+    },
+
+    listContent: { padding: 24 },
     centerEmpty: { flex: 1, justifyContent: 'center' },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
     card: {
         flexDirection: 'row',
-        padding: 16,
+        padding: 20,
         backgroundColor: 'white',
-        borderRadius: 16,
+        borderRadius: 20,
         marginBottom: 12,
         alignItems: 'center',
-        shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, elevation: 1,
-        borderWidth: 1, borderColor: '#f1f5f9'
+        // Soft Light
+        shadowColor: '#000',
+        shadowOpacity: 0.04,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 1,
+        borderWidth: 1,
+        borderColor: '#f1f5f9'
     },
 
     avatarContainer: {
-        width: 50, height: 50,
-        borderRadius: 25,
+        width: 52, height: 52,
+        borderRadius: 20,
         justifyContent: 'center', alignItems: 'center',
-        marginRight: 16
+        marginRight: 20,
+        borderWidth: 1,
+        borderColor: '#f8fafc'
     },
     avatarText: { fontSize: 24 },
 
     infoContainer: { flex: 1 },
 
     topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-    name: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
-    time: { fontSize: 11, color: '#94a3b8', fontWeight: '500' },
+    name: { fontSize: 16, fontWeight: '700', color: '#0f172a', flex: 1, marginRight: 8 }, // Added flex:1 and margin
+    time: { fontSize: 13, color: '#94a3b8', fontWeight: '500' },
 
-    lastMessage: { fontSize: 14, color: '#64748b', marginBottom: 8 },
+    lastMessage: { fontSize: 15, color: '#475569', marginBottom: 8, lineHeight: 22 }, // Better color & leading
 
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    jobRef: { fontSize: 10, color: '#94a3b8', backgroundColor: '#f1f5f9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-    roleLabel: { fontSize: 10, color: '#cbd5e1' },
+    jobRef: {
+        fontSize: 12, // Increased from 11
+        color: '#64748b',
+        backgroundColor: '#f1f5f9', // Slightly darker bg
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        overflow: 'hidden',
+        fontWeight: '600',
+        letterSpacing: 0.5
+    },
 
-    emptyState: { alignItems: 'center', padding: 32 },
-    emptyIcon: { fontSize: 48, marginBottom: 16, opacity: 0.5 },
-    emptyTitle: { fontSize: 18, fontWeight: 'bold', color: '#334155', marginBottom: 8 },
-    emptyDesc: { textAlign: 'center', color: '#64748b', fontSize: 14, lineHeight: 22 }
+    emptyState: { alignItems: 'center', padding: 32, paddingBottom: 100 },
+    emptyIcon: { fontSize: 48, marginBottom: 16, opacity: 0.8 },
+    emptyTitle: { fontSize: 20, fontWeight: '800', color: '#0f172a', marginBottom: 8 },
+    emptyDesc: { textAlign: 'center', color: '#64748b', fontSize: 16, lineHeight: 24 }
 });

@@ -27,13 +27,15 @@ const LoginScreen: React.FC = () => {
     const [step, setStep] = useState<'INPUT' | 'OTP'>('INPUT');
     const [identifier, setIdentifier] = useState(''); // Email or Phone
     const [otp, setOtp] = useState('');
-    const [role, setRole] = useState<UserRole>(UserRole.EMPLOYEE); // Default to Candidate
+    const [role, setRole] = useState<UserRole>(UserRole.JOB_SEEKER);
     const [isLoading, setIsLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     // Handlers
     const handleSendOTP = async () => {
+        setErrorMsg(null); // Clear prev errors
         if (!identifier.trim() || identifier.length < 3) {
-            Alert.alert("Invalid Input", "Please enter a valid email or phone number.");
+            setErrorMsg("Please enter a valid email or phone number.");
             return;
         }
 
@@ -41,47 +43,40 @@ const LoginScreen: React.FC = () => {
         try {
             await login(identifier.trim());
             setStep('OTP');
-
-            // UX: Focus helper or Toast could go here
-            if (__DEV__) {
-
-            }
         } catch (error: any) {
             console.error("Login Error:", error);
-            const msg = error.message || "Could not connect to server.";
-            Alert.alert("Connection Failed", msg);
+            setErrorMsg(error.message || "Couldn't connect. Please check your internet.");
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleVerify = async () => {
+        setErrorMsg(null);
         if (!otp.trim() || otp.length < 4) {
-            Alert.alert("Invalid Code", "Please enter the 6-digit code.");
+            setErrorMsg("Please enter the 6-digit code.");
             return;
         }
 
         setIsLoading(true);
         try {
-            // Context handles API + State Update
             const success = await verifyOtp(identifier.trim(), otp.trim(), role);
-
             if (!success) {
-                // AuthContext usually warns internally, but we warn UI too
-                throw new Error("Invalid OTP or session expired.");
+                setErrorMsg("Code didn't work. Try again?");
             }
-
-            // Success! No need to navigate manually; 
-            // App.tsx watches userToken and switches stack automatically.
-
+            // Success! App.tsx handles navigation.
         } catch (error: any) {
             console.error("Verification Error:", error);
-            Alert.alert("Login Failed", "Invalid OTP or session expired.");
-            setOtp(''); // Clear for retry
+            setErrorMsg("Code didn't work. Try again?");
+            setOtp('');
         } finally {
             setIsLoading(false);
         }
     };
+
+    // =========================================================================
+    // RENDER
+    // =========================================================================
 
     // =========================================================================
     // RENDER
@@ -92,30 +87,29 @@ const LoginScreen: React.FC = () => {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.container}
         >
-            <StatusBar barStyle="light-content" backgroundColor="#7c3aed" />
+            <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
             {/* BRANDING */}
-            <View style={styles.hero}>
-                <View style={styles.iconCircle}>
-                    <IconSparkles size={40} color="white" />
+            <View style={styles.header}>
+                <View style={styles.logoBadge}>
+                    <IconSparkles size={32} color="white" />
                 </View>
-                <Text style={styles.title}>Hire App</Text>
-                <Text style={styles.subtitle}>The Future of Frontline Hiring</Text>
+                <Text style={styles.title}>Welcome Back</Text>
+                <Text style={styles.subtitle}>Let's get you signed in.</Text>
             </View>
 
             {/* MAIN CARD */}
-            <View style={styles.card}>
+            <View style={styles.formContainer}>
 
-                {/* ROLE SWITCHER (Only visible in Step 1) */}
+                {/* ROLE SWITCHER */}
                 {step === 'INPUT' && (
                     <View style={styles.roleSwitcher}>
                         <TouchableOpacity
-                            style={[styles.roleBtn, role === UserRole.EMPLOYEE && styles.roleBtnActive]}
-                            onPress={() => setRole(UserRole.EMPLOYEE)}
+                            style={[styles.roleBtn, role === UserRole.JOB_SEEKER && styles.roleBtnActive]}
+                            onPress={() => setRole(UserRole.JOB_SEEKER)}
                             activeOpacity={0.8}
                         >
-                            <IconUsers size={18} color={role === UserRole.EMPLOYEE ? 'white' : '#64748b'} />
-                            <Text style={[styles.roleText, role === UserRole.EMPLOYEE && styles.roleTextActive]}>
+                            <Text style={[styles.roleText, role === UserRole.JOB_SEEKER && styles.roleTextActive]}>
                                 Job Seeker
                             </Text>
                         </TouchableOpacity>
@@ -125,7 +119,6 @@ const LoginScreen: React.FC = () => {
                             onPress={() => setRole(UserRole.EMPLOYER)}
                             activeOpacity={0.8}
                         >
-                            <IconBriefcase size={18} color={role === UserRole.EMPLOYER ? 'white' : '#64748b'} />
                             <Text style={[styles.roleText, role === UserRole.EMPLOYER && styles.roleTextActive]}>
                                 Employer
                             </Text>
@@ -136,19 +129,23 @@ const LoginScreen: React.FC = () => {
                 {/* FORM INPUTS */}
                 {step === 'INPUT' ? (
                     <>
-                        <Text style={styles.label}>
-                            {role === UserRole.EMPLOYEE ? 'Find your next job' : 'Hire top talent'}
-                        </Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Email or Mobile Number"
-                            placeholderTextColor="#94a3b8"
-                            value={identifier}
-                            onChangeText={setIdentifier}
-                            autoCapitalize="none"
-                            keyboardType="email-address"
-                            autoCorrect={false}
-                        />
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Email or Phone</Text>
+                            <TextInput
+                                style={[styles.input, errorMsg ? styles.inputError : null]}
+                                placeholder="name@example.com"
+                                placeholderTextColor="#94a3b8"
+                                value={identifier}
+                                onChangeText={(t) => {
+                                    setIdentifier(t);
+                                    if (errorMsg) setErrorMsg(null);
+                                }}
+                                autoCapitalize="none"
+                                keyboardType="email-address"
+                                autoCorrect={false}
+                            />
+                        </View>
+
                         <TouchableOpacity
                             style={styles.mainBtn}
                             onPress={handleSendOTP}
@@ -164,22 +161,27 @@ const LoginScreen: React.FC = () => {
                 ) : (
                     <>
                         <View style={styles.otpHeader}>
-                            <Text style={styles.label}>Verify your identity</Text>
+                            <Text style={styles.otpTitle}>Verify it's you</Text>
                             <Text style={styles.otpSubtext}>Code sent to {identifier}</Text>
                         </View>
 
                         <TextInput
-                            style={[styles.input, styles.otpInput]}
+                            style={[styles.otpInput, errorMsg ? styles.otpInputError : null]}
                             placeholder="123456"
                             placeholderTextColor="#cbd5e1"
                             value={otp}
-                            onChangeText={setOtp}
+                            onChangeText={(t) => {
+                                setOtp(t);
+                                if (errorMsg) setErrorMsg(null);
+                            }}
                             keyboardType="number-pad"
                             maxLength={6}
                             autoFocus
                         />
 
-                        {__DEV__ && <Text style={styles.devHint}>Dev Tip: Use '123456'</Text>}
+                        {__DEV__ && (
+                            <Text style={styles.devHint}>Dev Tip: Use '123456'</Text>
+                        )}
 
                         <TouchableOpacity
                             style={styles.mainBtn}
@@ -194,17 +196,24 @@ const LoginScreen: React.FC = () => {
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            onPress={() => { setStep('INPUT'); setOtp(''); }}
+                            onPress={() => { setStep('INPUT'); setOtp(''); setErrorMsg(null); }}
                             style={styles.backLink}
                         >
-                            <Text style={styles.backLinkText}>Change Number</Text>
+                            <Text style={styles.backLinkText}>Wrong number?</Text>
                         </TouchableOpacity>
                     </>
+                )}
+
+                {/* INLINE ERROR MESSAGE */}
+                {errorMsg && (
+                    <View style={styles.errorContainer}>
+                        <Text style={styles.errorText}>{errorMsg}</Text>
+                    </View>
                 )}
             </View>
 
             <Text style={styles.footer}>
-                By continuing, you agree to our Terms & Privacy Policy.
+                Your data is safe with us.
             </Text>
         </KeyboardAvoidingView>
     );
@@ -217,125 +226,152 @@ const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#7c3aed',
-        justifyContent: 'center',
-        padding: 24
+        backgroundColor: '#ffffff', // Clean White
+        padding: 24,
+        paddingTop: 60
     },
-    hero: {
+    header: {
         alignItems: 'center',
         marginBottom: 40
     },
-    iconCircle: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: 'rgba(255,255,255,0.15)',
+    logoBadge: {
+        width: 64,
+        height: 64,
+        borderRadius: 20,
+        backgroundColor: '#7c3aed',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.25)'
+        marginBottom: 24,
+        shadowColor: '#7c3aed',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.2,
+        shadowRadius: 12,
+        elevation: 6
     },
     title: {
-        fontSize: 32,
+        fontSize: 32, // Increased from 28 for impact (Founder Directive)
         fontWeight: '900',
-        color: 'white',
-        letterSpacing: -0.5
+        color: '#0f172a', // Slate-950
+        letterSpacing: -1, // Tighter tracking
+        marginBottom: 8
     },
     subtitle: {
         fontSize: 16,
-        color: '#e9d5ff',
-        marginTop: 8,
-        fontWeight: '500'
+        color: '#64748b', // Slate-500
+        textAlign: 'center',
+        lineHeight: 24 // Better readability
     },
 
-    card: {
-        backgroundColor: 'white',
-        borderRadius: 24,
-        padding: 24,
-        width: '100%',
-        shadowColor: '#000',
-        shadowOpacity: 0.15,
-        shadowRadius: 25,
-        shadowOffset: { width: 0, height: 10 },
-        elevation: 10
+    formContainer: {
+        width: '100%'
     },
 
+    // Role Switcher (Segmented Control)
     roleSwitcher: {
         flexDirection: 'row',
-        backgroundColor: '#f1f5f9',
-        borderRadius: 14,
+        backgroundColor: '#f1f5f9', // Slate-100
+        borderRadius: 12,
         padding: 4,
-        marginBottom: 24
+        marginBottom: 32
     },
     roleBtn: {
         flex: 1,
-        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 8,
-        padding: 12,
+        paddingVertical: 10,
         borderRadius: 10
     },
     roleBtnActive: {
-        backgroundColor: '#0f172a',
-        shadowColor: 'black',
-        shadowOpacity: 0.1,
+        backgroundColor: 'white',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
         shadowRadius: 4,
         elevation: 2
     },
     roleText: {
+        fontSize: 14,
         fontWeight: '600',
-        color: '#64748b',
-        fontSize: 14
+        color: '#64748b'
     },
     roleTextActive: {
-        color: 'white'
+        color: '#0f172a' // Slate-900
     },
 
-    otpHeader: { marginBottom: 16 },
-    otpSubtext: { color: '#64748b', fontSize: 13, marginTop: 4 },
-
+    inputGroup: {
+        marginBottom: 24
+    },
     label: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#0f172a',
-        marginBottom: 12
+        fontSize: 13, // Slightly smaller, more refined
+        fontWeight: '600', // Reduced from 700
+        color: '#475569', // Slate-600
+        marginBottom: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5
     },
     input: {
-        backgroundColor: '#f8fafc',
-        borderRadius: 14,
+        backgroundColor: '#f8fafc', // Slate-50
+        borderRadius: 12,
         padding: 16,
         fontSize: 16,
+        color: '#0f172a',
         borderWidth: 1,
-        borderColor: '#e2e8f0',
-        marginBottom: 24,
-        color: '#0f172a'
+        borderColor: '#e2e8f0'
+    },
+
+    // OTP Styles
+    otpHeader: {
+        alignItems: 'center',
+        marginBottom: 32
+    },
+    otpTitle: {
+        fontSize: 20,
+        fontWeight: '800', // Slightly reduced from bold default
+        color: '#0f172a',
+        marginBottom: 4
+    },
+    otpSubtext: {
+        color: '#64748b',
+        fontSize: 15
     },
     otpInput: {
-        fontSize: 24,
+        fontSize: 32,
+        fontWeight: '900', // Max boldness for the code
         letterSpacing: 8,
         textAlign: 'center',
-        fontWeight: 'bold'
+        color: '#7c3aed',
+        marginBottom: 32,
+        borderBottomWidth: 2,
+        borderBottomColor: '#e2e8f0',
+        paddingBottom: 8
     },
+
     mainBtn: {
-        backgroundColor: '#7c3aed',
-        padding: 16,
-        borderRadius: 14,
+        backgroundColor: '#7c3aed', // Violet-600
+        paddingVertical: 18, // Taller button
+        borderRadius: 16, // Softer corners
         alignItems: 'center',
         shadowColor: '#7c3aed',
-        shadowOpacity: 0.4,
-        shadowRadius: 10,
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
         shadowOffset: { width: 0, height: 4 }
     },
     mainBtnText: {
         color: 'white',
-        fontWeight: 'bold',
+        fontWeight: '700',
         fontSize: 16
     },
 
-    backLink: { marginTop: 20, alignSelf: 'center', padding: 8 },
-    backLinkText: { color: '#64748b', fontSize: 14, fontWeight: '500' },
+    backLink: {
+        marginTop: 24,
+        alignSelf: 'center',
+        padding: 8
+    },
+    backLinkText: {
+        color: '#64748b',
+        fontSize: 14,
+        fontWeight: '500' // Lighter weight
+    },
 
     devHint: {
         textAlign: 'center',
@@ -345,17 +381,39 @@ const styles = StyleSheet.create({
         backgroundColor: '#dcfce7',
         padding: 4,
         borderRadius: 4,
-        overflow: 'hidden'
+        overflow: 'hidden',
+        alignSelf: 'center'
     },
 
     footer: {
         position: 'absolute',
         bottom: 40,
-        left: 0,
-        right: 0,
-        textAlign: 'center',
-        color: 'rgba(255,255,255,0.7)',
-        fontSize: 12
+        alignSelf: 'center',
+        color: '#94a3b8',
+        fontSize: 13,
+        fontWeight: '500'
+    },
+    inputError: {
+        borderColor: '#ef4444',
+        backgroundColor: '#fef2f2'
+    },
+    otpInputError: {
+        borderBottomColor: '#ef4444',
+        color: '#ef4444'
+    },
+    errorContainer: {
+        marginTop: 16,
+        padding: 12,
+        backgroundColor: '#fef2f2',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#fee2e2',
+        alignItems: 'center'
+    },
+    errorText: {
+        color: '#b91c1c',
+        fontSize: 14,
+        fontWeight: '500'
     }
 });
 

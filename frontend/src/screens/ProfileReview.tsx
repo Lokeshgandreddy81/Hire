@@ -35,6 +35,7 @@ export default function ProfileReviewScreen({ navigation, route }: any) {
     const [profile, setProfile] = useState(initialProfile);
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
 
     // Handlers
     const handleSave = async () => {
@@ -43,29 +44,23 @@ export default function ProfileReviewScreen({ navigation, route }: any) {
             // 1. Send to Backend
             await ProfileAPI.createProfile(profile);
 
-            // 2. Update Local Context (Unlock App Features immediately)
+            // 2. Update Local Context
             updateUser({ isNewUser: false });
 
-            // 3. Success Feedback
-            Alert.alert(
-                'Profile Live! 🚀',
-                'Your profile is active. We are matching you with employers now.',
-                [
-                    {
-                        text: "Let's Go",
-                        onPress: () => {
-                            // Reset navigation stack to Home
-                            navigation.reset({
-                                index: 0,
-                                routes: [{ name: 'Dashboard' }] // or 'MainTab'
-                            });
-                        }
-                    }
-                ]
-            );
+            // 3. Show Success State (No Alert)
+            setIsSuccess(true);
+
+            // Auto navigate after small delay or let user tap "Continue"
+            setTimeout(() => {
+                navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'Dashboard' }]
+                });
+            }, 1500);
+
         } catch (e: any) {
             console.error("Save Error:", e);
-            Alert.alert('Save Failed', 'Could not save your profile. Please try again.');
+            Alert.alert('Save Failed', 'Could not save your profile. Please check connection.');
         } finally {
             setSaving(false);
         }
@@ -73,15 +68,24 @@ export default function ProfileReviewScreen({ navigation, route }: any) {
 
     const toggleEdit = () => {
         setIsEditing(!isEditing);
-        if (isEditing) {
-            // Toast or visual cue that changes are pending save
-        }
     };
 
     // Helper to update fields
     const updateField = (key: string, value: any) => {
         setProfile((prev: any) => ({ ...prev, [key]: value }));
     };
+
+    if (isSuccess) {
+        return (
+            <View style={[styles.container, styles.centerAll]}>
+                <View style={styles.successCircle}>
+                    <IconCheck size={48} color="white" />
+                </View>
+                <Text style={styles.BigSuccessTitle}>All Set!</Text>
+                <Text style={styles.BigSuccessSub}>Your profile is live.</Text>
+            </View>
+        );
+    }
 
     return (
         <KeyboardAvoidingView
@@ -93,7 +97,7 @@ export default function ProfileReviewScreen({ navigation, route }: any) {
                 <View>
                     <Text style={styles.title}>Review Profile</Text>
                     <Text style={styles.subtitle}>
-                        {isEditing ? 'Tap fields to edit' : 'Confirm AI details below'}
+                        {isEditing ? 'Tap below to edit' : 'Confirm details to finish'}
                     </Text>
                 </View>
                 <TouchableOpacity onPress={toggleEdit} style={styles.editHeaderBtn}>
@@ -113,7 +117,7 @@ export default function ProfileReviewScreen({ navigation, route }: any) {
                 {/* Banner */}
                 <View style={styles.successBanner}>
                     <IconCheck size={20} color="#15803d" />
-                    <Text style={styles.successText}>AI Extraction Complete</Text>
+                    <Text style={styles.successText}>Profile Ready</Text>
                 </View>
 
                 {/* Card: Role & Location */}
@@ -270,9 +274,9 @@ const styles = StyleSheet.create({
         color: '#0f172a',
     },
     subtitle: {
-        fontSize: 14,
+        fontSize: 16,
         color: '#64748b',
-        marginTop: 2
+        marginTop: 4
     },
     editHeaderBtn: {
         flexDirection: 'row',
@@ -283,7 +287,7 @@ const styles = StyleSheet.create({
         gap: 6
     },
     editBtnText: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: '600',
         color: '#64748b'
     },
@@ -299,40 +303,40 @@ const styles = StyleSheet.create({
     successBanner: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#dcfce7',
-        padding: 12,
-        borderRadius: 12,
+        backgroundColor: '#f0fdf4', // Green-50
+        padding: 16,
+        borderRadius: 16,
         marginBottom: 20,
         borderWidth: 1,
         borderColor: '#bbf7d0',
-        gap: 8
+        gap: 12
     },
     successText: {
-        color: '#166534',
-        fontWeight: 'bold',
-        fontSize: 13
+        color: '#15803d',
+        fontWeight: '700',
+        fontSize: 15
     },
 
     // Cards
     sectionCard: {
         backgroundColor: 'white',
-        borderRadius: 16,
-        padding: 20,
+        borderRadius: 20,
+        padding: 24,
         marginBottom: 16,
         borderWidth: 1,
         borderColor: '#e2e8f0',
         shadowColor: '#000',
         shadowOpacity: 0.02,
-        shadowRadius: 4,
+        shadowRadius: 8,
         elevation: 1
     },
     sectionTitle: {
         fontSize: 12,
-        fontWeight: 'bold',
+        fontWeight: '700',
         color: '#94a3b8',
         textTransform: 'uppercase',
-        marginBottom: 12,
-        letterSpacing: 0.5
+        marginBottom: 16,
+        letterSpacing: 1
     },
 
     // Inputs/Display
@@ -342,41 +346,45 @@ const styles = StyleSheet.create({
     labelRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        marginBottom: 6
+        gap: 8,
+        marginBottom: 8
     },
     label: {
         fontSize: 12,
-        fontWeight: 'bold',
+        fontWeight: '700',
         color: '#64748b',
-        textTransform: 'uppercase'
+        textTransform: 'uppercase',
+        letterSpacing: 0.5
     },
     value: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: '600',
-        color: '#0f172a'
+        color: '#0f172a',
+        lineHeight: 26
     },
     input: {
-        fontSize: 16,
+        fontSize: 18,
         color: '#0f172a',
         borderBottomWidth: 1,
         borderBottomColor: '#7c3aed',
-        paddingVertical: 4,
-        backgroundColor: '#faf5ff'
+        paddingVertical: 8,
+        backgroundColor: '#faf5ff' // Subtle highlighted bg for edit mode
     },
     textArea: {
-        minHeight: 80,
-        textAlignVertical: 'top'
+        minHeight: 100,
+        textAlignVertical: 'top',
+        fontSize: 16,
+        lineHeight: 24
     },
     divider: {
         height: 1,
         backgroundColor: '#f1f5f9',
-        marginVertical: 16
+        marginVertical: 20
     },
     bodyText: {
-        fontSize: 15,
+        fontSize: 16,
         color: '#334155',
-        lineHeight: 24
+        lineHeight: 26
     },
 
     // Skills
@@ -387,15 +395,15 @@ const styles = StyleSheet.create({
     },
     skillBadge: {
         backgroundColor: '#f3e8ff',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 100,
         borderWidth: 1,
         borderColor: '#e9d5ff'
     },
     skillText: {
         color: '#7c3aed',
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: '600'
     },
 
@@ -417,7 +425,7 @@ const styles = StyleSheet.create({
     },
     saveButton: {
         backgroundColor: '#7c3aed',
-        paddingVertical: 18,
+        paddingVertical: 20,
         borderRadius: 16,
         flexDirection: 'row',
         justifyContent: 'center',
@@ -436,5 +444,33 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 16,
         fontWeight: 'bold'
+    },
+
+    // Success State
+    centerAll: {
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    successCircle: {
+        width: 80, height: 80,
+        borderRadius: 40,
+        backgroundColor: '#22c55e',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24,
+        shadowColor: '#22c55e',
+        shadowOpacity: 0.4,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 }
+    },
+    BigSuccessTitle: {
+        fontSize: 32,
+        fontWeight: '900',
+        color: '#0f172a',
+        marginBottom: 8
+    },
+    BigSuccessSub: {
+        fontSize: 18,
+        color: '#64748b'
     }
 });

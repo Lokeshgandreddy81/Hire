@@ -3,7 +3,7 @@ import os
 import logging
 import aiofiles # Async file IO
 from datetime import datetime
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union, Any
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
 from pydantic import BaseModel, Field
@@ -39,6 +39,30 @@ class ProfileResponse(BaseModel):
     experienceYears: float
     summary: str
     source: str = "manual"
+
+# --- Phase 1: High Signal Data Schemas ---
+class SkillEntry(BaseModel):
+    name: str
+    level: str = "intermediate" # entry, intermediate, advanced, expert
+
+class ExperienceEntry(BaseModel):
+    years: float = 0.0
+    type: str = "production" # production, academic, internship, freelance
+    domain: List[str] = []
+
+class ProfileCreate(BaseModel):
+    job_title: str = Field(..., min_length=1)
+    location: str = Field(..., min_length=1)
+    experience_years: float = 0 # Changed from int to float
+    salary_expectations: str = "Negotiable"
+    # Allow simple strings or rich objects
+    skills: List[Union[str, SkillEntry]] = [] 
+    summary: str = ""
+    remote_work_preference: bool = False
+    
+    # New Signals
+    experience_detail: Optional[ExperienceEntry] = None
+    target_role: Optional[str] = None
 
 # =============================================================================
 # UTILITIES
@@ -91,14 +115,7 @@ async def get_profiles(current_user: dict = Depends(get_current_user)):
         return []
 
 
-class ProfileCreate(BaseModel):
-    job_title: str = Field(..., min_length=1)
-    location: str = Field(..., min_length=1)
-    experience_years: int = 0
-    salary_expectations: str = "Negotiable"
-    skills: List[str] = []
-    summary: str = ""
-    remote_work_preference: bool = False
+
 
 
 @router.post("/", response_model=dict)
@@ -112,14 +129,36 @@ async def create_profile(
     db = get_db()
     
     try:
+        # Normalize Skills: Split into legacy Strings and rich Entries
+        final_skills_list: List[str] = []
+        final_skill_entries: List[Dict[str, Any]] = []
+
+        for s in profile_data.skills:
+            if isinstance(s, str):
+                final_skills_list.append(s)
+                final_skill_entries.append({"name": s, "level": "intermediate"})
+            elif isinstance(s, SkillEntry):
+                final_skills_list.append(s.name)
+                final_skill_entries.append(s.dict())
+            else:
+                # Should be covered by Pydantic validation, but safety check
+                if isinstance(s, dict):
+                     name = s.get("name", "")
+                     if name:
+                        final_skills_list.append(name)
+                        final_skill_entries.append(s)
+
         # Build profile document
         profile_doc = {
             "user_id": current_user["id"],
             "roleTitle": profile_data.job_title,
+            "target_role": profile_data.target_role or profile_data.job_title, # Fallback
             "location": profile_data.location,
             "experienceYears": profile_data.experience_years,
+            "experience_detail": profile_data.experience_detail.dict() if profile_data.experience_detail else None,
             "salary_expectations": profile_data.salary_expectations,
-            "skills": profile_data.skills,
+            "skills": final_skills_list, # Backward compatible List[str]
+            "skill_entries": final_skill_entries, # High Signal List[dict]
             "summary": profile_data.summary or f"Experienced {profile_data.job_title} in {profile_data.location}.",
             "remote_work_preference": profile_data.remote_work_preference,
             "source": "manual",
@@ -160,13 +199,6 @@ async def create_profile(
             "summary": profile_doc["summary"],
             "message": "Profile created successfully"
         }
-        
-    except DuplicateKeyError:
-        logger.warning(f"Profile creation failed: Profile already exists for user {current_user['id']}")
-        raise HTTPException(
-            status_code=400, 
-            detail="You already have a profile. Please edit your existing profile."
-        )
         
     except Exception as e:
         logger.error(f"Create Profile Error: {e}")

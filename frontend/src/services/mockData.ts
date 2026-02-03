@@ -7,7 +7,7 @@ import { Job, Application, User, UserRole, Profile, TalentPool } from '../types'
 export const CURRENT_USER_EMPLOYEE: User = {
     id: 'u1',
     name: 'Rajesh Kumar',
-    role: UserRole.EMPLOYEE,
+    role: UserRole.JOB_SEEKER,
     roleTitle: 'Heavy Vehicle Driver', // Added for UI display
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?fit=crop&w=200&h=200',
     location: 'Hyderabad',

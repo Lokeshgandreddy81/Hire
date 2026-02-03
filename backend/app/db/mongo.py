@@ -61,7 +61,7 @@ class MongoDB:
 
             # 2. Profiles Collection
             await self.db.profiles.create_indexes([
-                IndexModel([("user_id", ASCENDING)], unique=True),    # One profile per user
+                IndexModel([("user_id", ASCENDING)], name="user_id_multi"),  # Multiple profiles allowed
                 IndexModel([("skills", TEXT)])                        # Text search for skills
             ])
 

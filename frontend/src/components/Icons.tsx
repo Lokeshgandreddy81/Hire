@@ -24,6 +24,13 @@ import {
     Phone,
     Lock,
     ArrowLeft,
+    AlertCircle,
+    Edit,
+    Save,
+    ArrowRight,
+    User,
+    LogOut,
+    Trash2,
     LucideProps
 } from 'lucide-react-native';
 
@@ -69,3 +76,12 @@ export const IconFile = FileText;
 export const IconMapPin = MapPin;
 export const IconClock = Clock;
 export const IconArrowLeft = ArrowLeft;
+
+// Settings & Account
+export const IconAlertCircle = AlertCircle;
+export const IconEdit = Edit;
+export const IconSave = Save;
+export const IconArrowRight = ArrowRight;
+export const IconUser = User;
+export const IconLogOut = LogOut;
+export const IconTrash = Trash2;

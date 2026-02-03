@@ -12,6 +12,8 @@ interface User {
     identifier: string; // Email or Phone
     role: UserRole;
     isNewUser?: boolean;
+    name?: string;
+    avatar?: string;
 }
 
 interface AuthContextData {
@@ -28,7 +30,7 @@ interface AuthContextData {
 // CONTEXT
 // =============================================================================
 
-export const AuthContext = createContext < AuthContextData > ({} as AuthContextData);
+export const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
 // Hook for easy usage
 export const useAuth = () => useContext(AuthContext);
@@ -38,24 +40,28 @@ export const useAuth = () => useContext(AuthContext);
 // =============================================================================
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [userToken, setUserToken] = useState < string | null > (null);
-    const [userInfo, setUserInfo] = useState < User | null > (null);
+    const [userToken, setUserToken] = useState<string | null>(null);
+    const [userInfo, setUserInfo] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     // 1. BOOTSTRAP: Load persisted data on app launch
     useEffect(() => {
         const bootstrapAsync = async () => {
+            console.log('🤠 [AuthContext] Bootstrap Started');
             try {
                 // Register Interceptor Callback
                 registerLogoutCallback(apiLogout);
 
+                console.log('🤠 [AuthContext] Reading SecureStore...');
                 // Parallel read for speed
                 const [refreshToken, userJson] = await Promise.all([
                     SecureStore.getItemAsync('refreshToken'),
                     SecureStore.getItemAsync('userData')
                 ]);
+                console.log('🤠 [AuthContext] SecureStore Read Complete', { hasToken: !!refreshToken });
 
                 if (refreshToken && userJson) {
+                    console.log('🤠 [AuthContext] Found credentials, refreshing...');
                     // 🔒 H4: Try to get fresh access token immediately
                     // This proves the refresh token is valid before letting user in.
                     try {
@@ -69,15 +75,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         if (new_rt) {
                             await SecureStore.setItemAsync('refreshToken', new_rt);
                         }
+                        console.log('🤠 [AuthContext] Token Refresh Success');
                     } catch (refreshErr) {
                         console.warn('Bootstrap Refresh Failed:', refreshErr);
                         await apiLogout(); // Token invalid/expired -> Force Login
                     }
+                } else {
+                    console.log('🤠 [AuthContext] No credentials found. State remains logged out.');
                 }
             } catch (e) {
                 console.warn('Auth Restore Failed:', e);
                 await apiLogout();
             } finally {
+                console.log('🤠 [AuthContext] Bootstrap Finished. Setting isLoading=false');
                 setIsLoading(false);
             }
         };

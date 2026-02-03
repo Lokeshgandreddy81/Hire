@@ -44,7 +44,7 @@ const Layout: React.FC<LayoutProps> = ({
         {
             id: 'profiles',
             icon: IconUsers,
-            label: role === UserRole.EMPLOYEE ? 'My Profile' : 'Candidates'
+            label: role === UserRole.JOB_SEEKER ? 'My Profile' : 'Candidates'
         },
         {
             id: 'jobs',
@@ -69,7 +69,7 @@ const Layout: React.FC<LayoutProps> = ({
     ];
 
     // Dynamic FAB Icon
-    const FabIcon = role === UserRole.EMPLOYEE ? IconVideo : IconPlus;
+    const FabIcon = role === UserRole.JOB_SEEKER ? IconVideo : IconPlus;
 
     return (
         <SafeAreaView style={styles.container}>

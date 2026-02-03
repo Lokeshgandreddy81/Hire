@@ -10,7 +10,7 @@ import Constants from 'expo-constants';
 
 // DYNAMIC IP RESOLUTION (Best for LAN/Tunnel)
 const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
-let localhost = debuggerHost?.split(':')[0] || '192.168.1.101'; // Fallback to verified IP
+let localhost = debuggerHost?.split(':')[0] || '192.168.1.123'; // Updated to match current session IP
 
 // 🔒 ANDROID EMULATOR FIX: Map localhost -> 10.0.2.2
 if (Platform.OS === 'android' && localhost === 'localhost') {
@@ -37,7 +37,7 @@ export const registerLogoutCallback = (cb: () => void) => {
     onLogout = cb;
 };
 
-const getAuthHeaders = async () => {
+const getAuthHeaders = async (): Promise<Record<string, string>> => {
     let token = inMemoryToken;
 
     if (!token) {
@@ -45,9 +45,10 @@ const getAuthHeaders = async () => {
         if (token) inMemoryToken = token;
     }
 
-    return token
-        ? { Authorization: `Bearer ${token}` }
-        : {};
+    if (token) {
+        return { Authorization: `Bearer ${token}` };
+    }
+    return {};
 };
 
 // =============================================================================
@@ -58,9 +59,10 @@ const request = async (
     path: string,
     options: RequestInit = {}
 ) => {
-    const headers = {
+    const authHeaders = await getAuthHeaders();
+    const headers: HeadersInit = {
         'Content-Type': 'application/json',
-        ...(await getAuthHeaders()),
+        ...authHeaders,
         ...(options.headers || {}),
     };
 
@@ -144,7 +146,7 @@ const request = async (
 
     if (!res.ok) {
         const text = await res.text();
-        throw new Error(text || 'API Error');
+        throw new Error(text || 'We encountered an issue. Please try again.');
     }
 
     return res.json();
@@ -310,6 +312,12 @@ export const AuthAPI = {
         return request('/auth/logout', {
             method: 'POST',
             body: JSON.stringify({ refresh_token: refreshToken })
+        });
+    },
+
+    deleteAccount: async () => {
+        return request('/auth/delete-account', {
+            method: 'DELETE'
         });
     }
 };

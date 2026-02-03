@@ -29,7 +29,7 @@ export default function RoleSelectScreen({ navigation }: any) {
             {/* Header Section */}
             <View style={styles.header}>
                 <View style={styles.logoBadge}>
-                    <IconSparkles size={32} color="white" />
+                    <IconSparkles size={32} color="#7c3aed" />
                 </View>
                 <Text style={styles.title}>Welcome to Hire App</Text>
                 <Text style={styles.subtitle}>
@@ -45,7 +45,7 @@ export default function RoleSelectScreen({ navigation }: any) {
                 <TouchableOpacity
                     style={[styles.card, styles.cardSeeker]}
                     activeOpacity={0.9}
-                    onPress={() => handleSelectRole(UserRole.EMPLOYEE)}
+                    onPress={() => handleSelectRole(UserRole.JOB_SEEKER)}
                 >
                     <View style={styles.iconCircleSeeker}>
                         <IconUsers size={32} color="#0f172a" />
@@ -65,13 +65,13 @@ export default function RoleSelectScreen({ navigation }: any) {
                     onPress={() => handleSelectRole(UserRole.EMPLOYER)}
                 >
                     <View style={styles.iconCircleEmployer}>
-                        <IconBriefcase size={32} color="white" />
+                        <IconBriefcase size={32} color="#7c3aed" />
                     </View>
                     <View style={styles.cardText}>
-                        <Text style={[styles.cardTitle, { color: 'white' }]}>
+                        <Text style={styles.cardTitle}>
                             I'm an Employer
                         </Text>
-                        <Text style={[styles.cardDesc, { color: '#e2e8f0' }]}>
+                        <Text style={styles.cardDesc}>
                             Post jobs, manage pools, and hire verified staff instantly.
                         </Text>
                     </View>
@@ -97,7 +97,7 @@ const { width } = Dimensions.get('window');
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc', // Slate-50
+        backgroundColor: '#f8fafc', // Slate-50 main bg
         padding: 24
     },
 
@@ -112,27 +112,27 @@ const styles = StyleSheet.create({
         width: 72,
         height: 72,
         borderRadius: 24,
-        backgroundColor: '#7c3aed',
+        backgroundColor: 'white',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 24,
-        shadowColor: '#7c3aed',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
         shadowRadius: 12,
-        elevation: 10
+        elevation: 4
     },
     title: {
-        fontSize: 28,
+        fontSize: 32,
         fontWeight: '900',
-        color: '#0f172a',
+        color: '#020617', // Slate-950
         textAlign: 'center',
         marginBottom: 12,
         letterSpacing: -0.5
     },
     subtitle: {
         fontSize: 16,
-        color: '#64748b',
+        color: '#64748b', // Slate-600
         textAlign: 'center',
         maxWidth: width * 0.7,
         lineHeight: 24
@@ -146,15 +146,15 @@ const styles = StyleSheet.create({
     },
     sectionLabel: {
         fontSize: 12,
-        fontWeight: 'bold',
+        fontWeight: '700',
         color: '#94a3b8',
         textTransform: 'uppercase',
-        letterSpacing: 1,
+        letterSpacing: 1.5,
         marginBottom: 8,
         textAlign: 'center'
     },
 
-    // Cards
+    // Cards (Unified Design)
     card: {
         width: '100%',
         padding: 24,
@@ -162,19 +162,21 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 20,
+        backgroundColor: 'white',
+        // Soft Light Shadow
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 5,
+        shadowOpacity: 0.04,
+        shadowRadius: 16,
+        elevation: 2,
         borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.05)'
+        borderColor: '#f1f5f9'
     },
     cardSeeker: {
-        backgroundColor: 'white',
+        // No special override needed for seeker
     },
     cardEmployer: {
-        backgroundColor: '#0f172a', // Slate-900 (Dark branding for serious business)
+        // Removed dark background. Unified.
     },
 
     // Icons inside cards
@@ -182,7 +184,7 @@ const styles = StyleSheet.create({
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: '#f1f5f9',
+        backgroundColor: '#f0f9ff', // Sky-50
         alignItems: 'center',
         justifyContent: 'center'
     },
@@ -190,7 +192,7 @@ const styles = StyleSheet.create({
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: 'rgba(255,255,255,0.15)',
+        backgroundColor: '#fdf4ff', // Fuchsia-50
         alignItems: 'center',
         justifyContent: 'center'
     },
@@ -201,14 +203,14 @@ const styles = StyleSheet.create({
     },
     cardTitle: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontWeight: '800',
         color: '#0f172a',
         marginBottom: 6
     },
     cardDesc: {
-        fontSize: 13,
+        fontSize: 14,
         color: '#64748b',
-        lineHeight: 18
+        lineHeight: 20
     },
 
     // Footer
@@ -218,7 +220,7 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontSize: 11,
-        color: '#94a3b8',
+        color: '#cbd5e1',
         textAlign: 'center',
         maxWidth: 280,
         lineHeight: 16

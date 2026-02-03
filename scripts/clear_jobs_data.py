@@ -12,9 +12,8 @@ async def clear_jobs_data():
     
     print(f"🔥 CONNECTING to {DB_NAME}...")
     
-    # CLEAR ONLY TRANSACTIONAL DATA
-    # Keep 'users' and 'profiles' intact so user stays logged in + configured.
-    collections = ["jobs", "applications", "chats", "job_matches"]
+    # CLEAR ALL DATA (Including Users/Profiles for full reset)
+    collections = ["jobs", "applications", "chats", "job_matches", "users", "profiles"]
     
     print("🧹 CLEARING JOB DATA ONLY...")
     for col_name in collections:

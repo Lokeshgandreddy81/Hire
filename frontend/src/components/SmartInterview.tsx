@@ -160,7 +160,7 @@ const SmartInterview: React.FC<SmartInterviewProps> = ({ onClose, onComplete, ro
 
                 {/* STATE 2: TEXT FORMS */}
                 {step === 'TEXT_FORM' && (
-                    role === UserRole.EMPLOYEE ? (
+                    role === UserRole.JOB_SEEKER ? (
                         <ProfileCreationForm
                             onClose={onClose}
                             onSuccess={handleFormSuccess}

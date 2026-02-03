@@ -129,10 +129,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ currentUser, onLogout }) => {
         );
     };
 
-    const isEmployee = currentUser?.role === UserRole.EMPLOYEE;
-    const displayName = currentUser.name || "User";
-    const displayRole = isEmployee ? (currentUser?.roleTitle || "Job Seeker") : (currentUser?.companyName || "Employer");
-    const avatarUrl = currentUser.avatar || `https://ui-avatars.com/api/?name=${displayName}&background=7c3aed&color=fff`;
+    const isEmployee = currentUser?.role === UserRole.JOB_SEEKER;
+    const displayName = currentUser?.name || "User";
+    const displayRole = isEmployee ? ("Job Seeker") : ("Employer");
+    const avatarUrl = currentUser?.avatar || `https://ui-avatars.com/api/?name=${displayName}&background=7c3aed&color=fff`;
 
     return (
         <View style={styles.container}>
